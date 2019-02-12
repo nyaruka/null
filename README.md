@@ -1,8 +1,8 @@
 # null int and string values
 
 This module provides (yet another) alternative in dealing with integers and strings which may be null in your JSON or 
-database. There are various different approaches to this, namely the built in [https://golang.org/pkg/database/sql/#NullInt64](golang SQL types)
-and the [https://github.com/guregu/null](guregu null module) which adds in JSON support. These are fine approaches but 
+database. There are various different approaches to this, namely the built in (golang SQL types)[https://golang.org/pkg/database/sql/#NullInt64]
+and the (guregu null module)[https://github.com/guregu/null] which adds in JSON support. These are fine approaches but 
 both suffer from you having to deal with a struct type for your ids instead of a more natural int64 or string. That is fine
 in some cases but I prefer to use more primitive types as assignment is more straightforward, simple equality works, etc.
 
