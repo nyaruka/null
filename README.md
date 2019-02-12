@@ -24,9 +24,7 @@ func (i CustomID) MarshalJSON() ([]byte, error) {
 }
 
 func (i *CustomID) UnmarshalJSON(b []byte) error {
-	val, err := null.UnmarshalInt(b)
-	*i = CustomID(val)
-	return err
+	return null.UnmarshalInt(b, (*null.Int)(i))
 }
 
 func (i CustomID) Value() (driver.Value, error) {
@@ -34,9 +32,7 @@ func (i CustomID) Value() (driver.Value, error) {
 }
 
 func (i *CustomID) Scan(value interface{}) error {
-	val, err := null.ScanInt(value)
-	*i = CustomID(val)
-	return err
+	return null.ScanInt(value, (*null.Int)(i))
 }
 ```
 
@@ -54,9 +50,7 @@ func (s CustomString) MarshalJSON() ([]byte, error) {
 }
 
 func (s *CustomString) UnmarshalJSON(b []byte) error {
-	val, err := null.UnmarshalString(b)
-	*s = CustomString(val)
-	return err
+	return null.UnmarshalString(b, (*null.String)(s))
 }
 
 func (s CustomString) Value() (driver.Value, error) {
@@ -64,9 +58,7 @@ func (s CustomString) Value() (driver.Value, error) {
 }
 
 func (s *CustomString) Scan(value interface{}) error {
-	val, err := null.ScanString(value)
-	*s = CustomString(val)
-	return err
+	return null.ScanString(value, (*null.String)(s))
 }
 ```
 

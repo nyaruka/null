@@ -18,9 +18,7 @@ func (i CustomID) MarshalJSON() ([]byte, error) {
 }
 
 func (i *CustomID) UnmarshalJSON(b []byte) error {
-	val, err := UnmarshalInt(b)
-	*i = CustomID(val)
-	return err
+	return UnmarshalInt(b, (*Int)(i))
 }
 
 func (i CustomID) Value() (driver.Value, error) {
@@ -28,9 +26,7 @@ func (i CustomID) Value() (driver.Value, error) {
 }
 
 func (i *CustomID) Scan(value interface{}) error {
-	val, err := ScanInt(value)
-	*i = CustomID(val)
-	return err
+	return ScanInt(value, (*Int)(i))
 }
 
 type OtherCustom = Int
@@ -70,8 +66,8 @@ func TestCustomInt(t *testing.T) {
 		id := CustomID(10)
 		err = json.Unmarshal(b, &id)
 		assert.NoError(t, err)
-		assert.True(t, tc.Value == id)
-		assert.True(t, tc.Test == id)
+		assert.True(t, tc.Value == id, "%d: %s not equal to %s", i, tc.Value, id)
+		assert.True(t, tc.Test == id, "%d: %s not equal to %s", i, tc.Test, id)
 
 		_, err = db.Exec(`INSERT INTO custom_id(id) VALUES($1)`, tc.Value)
 		assert.NoError(t, err)
@@ -168,9 +164,7 @@ func (s CustomString) MarshalJSON() ([]byte, error) {
 }
 
 func (s *CustomString) UnmarshalJSON(b []byte) error {
-	val, err := UnmarshalString(b)
-	*s = CustomString(val)
-	return err
+	return UnmarshalString(b, (*String)(s))
 }
 
 func (s CustomString) Value() (driver.Value, error) {
@@ -178,9 +172,7 @@ func (s CustomString) Value() (driver.Value, error) {
 }
 
 func (s *CustomString) Scan(value interface{}) error {
-	val, err := ScanString(value)
-	*s = CustomString(val)
-	return err
+	return ScanString(value, (*String)(s))
 }
 
 const NullCustomString = CustomString("")
@@ -266,18 +258,18 @@ func TestString(t *testing.T) {
 		{NullString, "null", nil},
 	}
 
-	for _, tc := range tcs {
+	for i, tc := range tcs {
 		_, err = db.Exec(`DELETE FROM custom_string;`)
 		assert.NoError(t, err)
 
 		b, err := json.Marshal(tc.Value)
 		assert.NoError(t, err)
-		assert.True(t, tc.JSON == string(b), "%s not equal to %s", tc.JSON, string(b))
+		assert.True(t, tc.JSON == string(b), "%d: %s not equal to %s", i, tc.JSON, string(b))
 
 		str := String("blah")
 		err = json.Unmarshal(b, &str)
 		assert.NoError(t, err)
-		assert.True(t, tc.Value == str)
+		assert.True(t, tc.Value == str, "%d: %s not equal to %s", i, tc.Value, str)
 
 		_, err = db.Exec(`INSERT INTO custom_string(string) VALUES($1)`, tc.Value)
 		assert.NoError(t, err)
