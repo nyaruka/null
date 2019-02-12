@@ -19,20 +19,24 @@ type CustomID null.Int
 
 const NullCustomID = CustomID(0)
 
+// MarshalJSON marshals into JSON. 0 values will become null
 func (i CustomID) MarshalJSON() ([]byte, error) {
 	return null.Int(i).MarshalJSON()
 }
 
+// UnmarshalJSON unmarshals from JSON. null values become 0
 func (i *CustomID) UnmarshalJSON(b []byte) error {
 	val, err := null.UnmarshalInt(b)
 	*i = CustomID(val)
 	return err
 }
 
+// Value returns the db value, null is returned for 0
 func (i CustomID) Value() (driver.Value, error) {
 	return null.Int(i).Value()
 }
 
+// Scan scans from the db value. null values become 0
 func (i *CustomID) Scan(value interface{}) error {
 	val, err := null.ScanInt(value)
 	*i = CustomID(val)
@@ -49,20 +53,24 @@ type CustomString null.String
 
 type NullCustomString = CustomString("")
 
+// MarshalJSON marshals into JSON. "" values will become null
 func (s CustomString) MarshalJSON() ([]byte, error) {
 	return null.String(s).MarshalJSON()
 }
 
+// UnmarshalJSON unmarshals from JSON. null values become ""
 func (s *CustomString) UnmarshalJSON(b []byte) error {
 	val, err := null.UnmarshalString(b)
 	*s = CustomString(val)
 	return err
 }
 
+// Value returns the db value, null is returned for ""
 func (s CustomString) Value() (driver.Value, error) {
 	return null.String(s).Value()
 }
 
+// Scan scans from the db value. null values become ""
 func (s *CustomString) Scan(value interface{}) error {
 	val, err := null.ScanString(value)
 	*s = CustomString(val)
