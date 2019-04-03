@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
+	"fmt"
 )
 
 // Int is an int that will write as null when it is zero both to databases and json
@@ -171,7 +171,7 @@ func (m *StringMap) Scan(src interface{}) error {
 	case []byte:
 		source = src.([]byte)
 	default:
-		return errors.New("incompatible type for map")
+		return fmt.Errorf("incompatible type for map")
 	}
 
 	// 0 length string is same as nil
