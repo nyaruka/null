@@ -138,28 +138,56 @@ func (s String) Value() (driver.Value, error) {
 	return string(s), nil
 }
 
-// StringMap is a one level deep dictionary that is represented as JSON text in the database.
+// Map is a one level deep dictionary that is represented as JSON text in the database.
 // Empty maps will be written as null to the database and to JSON.
-type StringMap struct {
-	m map[string]string
+type Map struct {
+	m map[string]interface{}
 }
 
-// NewStringMap creates a new StringMap
-func NewStringMap(m map[string]string) StringMap {
-	return StringMap{m: m}
+// NewMap creates a new Map
+func NewMap(m map[string]interface{}) Map {
+	return Map{m: m}
 }
 
 // Map returns our underlying map
-func (m *StringMap) Map() map[string]string {
+func (m *Map) Map() map[string]interface{} {
 	if m.m == nil {
-		m.m = make(map[string]string)
+		m.m = make(map[string]interface{})
 	}
 	return m.m
 }
 
+// GetString returns the string value with the passed in key, or def if not found or of wrong type
+func (m *Map) GetString(key string, def string) string {
+	if m.m == nil {
+		return def
+	}
+	val := m.m[key]
+	if val == nil {
+		return def
+	}
+	str, isStr := val.(string)
+	if !isStr {
+		return def
+	}
+	return str
+}
+
+// Get returns the  value with the passed in key, or def if not found
+func (m *Map) Get(key string, def interface{}) interface{} {
+	if m.m == nil {
+		return def
+	}
+	val := m.m[key]
+	if val == nil {
+		return def
+	}
+	return val
+}
+
 // Scan implements the Scanner interface for decoding from a database
-func (m *StringMap) Scan(src interface{}) error {
-	m.m = make(map[string]string)
+func (m *Map) Scan(src interface{}) error {
+	m.m = make(map[string]interface{})
 	if src == nil {
 		return nil
 	}
@@ -187,7 +215,7 @@ func (m *StringMap) Scan(src interface{}) error {
 }
 
 // Value implements the driver Valuer interface
-func (m StringMap) Value() (driver.Value, error) {
+func (m Map) Value() (driver.Value, error) {
 	if m.m == nil || len(m.m) == 0 {
 		return nil, nil
 	}
@@ -195,7 +223,7 @@ func (m StringMap) Value() (driver.Value, error) {
 }
 
 // MarshalJSON encodes our map to JSON
-func (m StringMap) MarshalJSON() ([]byte, error) {
+func (m Map) MarshalJSON() ([]byte, error) {
 	if m.m == nil || len(m.m) == 0 {
 		return json.Marshal(nil)
 	}
@@ -203,8 +231,8 @@ func (m StringMap) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON sets our map from the passed in JSON
-func (m *StringMap) UnmarshalJSON(data []byte) error {
-	m.m = make(map[string]string)
+func (m *Map) UnmarshalJSON(data []byte) error {
+	m.m = make(map[string]interface{})
 	if len(data) == 0 {
 		return nil
 	}

@@ -310,14 +310,16 @@ func TestMap(t *testing.T) {
 	}
 
 	tcs := []struct {
-		Value StringMap
-		JSON  string
-		DB    *string
+		Value    Map
+		JSON     string
+		DB       *string
+		Key      string
+		KeyValue string
 	}{
-		{NewStringMap(map[string]string{"foo": "bar"}), `{"foo":"bar"}`, sp(`{"foo": "bar"}`)},
-		{NewStringMap(map[string]string{}), "null", nil},
-		{NewStringMap(nil), "null", nil},
-		{NewStringMap(nil), "null", sp("")},
+		{NewMap(map[string]interface{}{"foo": "bar"}), `{"foo":"bar"}`, sp(`{"foo": "bar"}`), "foo", "bar"},
+		{NewMap(map[string]interface{}{}), "null", nil, "foo", ""},
+		{NewMap(nil), "null", nil, "foo", ""},
+		{NewMap(nil), "null", sp(""), "foo", ""},
 	}
 
 	for i, tc := range tcs {
@@ -328,10 +330,11 @@ func TestMap(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, tc.JSON, string(b), "%d: %s not equal to %s", i, tc.JSON, string(b))
 
-		m := StringMap{}
+		m := Map{}
 		err = json.Unmarshal(b, &m)
 		assert.NoError(t, err)
 		assert.Equal(t, tc.Value.Map(), m.Map(), "%d: %s not equal to %s", i, tc.Value, m)
+		assert.Equal(t, m.GetString(tc.Key, ""), tc.KeyValue)
 
 		_, err = db.Exec(`INSERT INTO map(value) VALUES($1)`, tc.Value)
 		assert.NoError(t, err)
@@ -339,12 +342,13 @@ func TestMap(t *testing.T) {
 		rows, err := db.Query(`SELECT value FROM map;`)
 		assert.NoError(t, err)
 
-		m2 := StringMap{}
+		m2 := Map{}
 		assert.True(t, rows.Next())
 		err = rows.Scan(&m2)
 		assert.NoError(t, err)
 
 		assert.Equal(t, tc.Value.Map(), m2.Map())
+		assert.Equal(t, m2.GetString(tc.Key, ""), tc.KeyValue)
 
 		_, err = db.Exec(`DELETE FROM map;`)
 		assert.NoError(t, err)
@@ -355,11 +359,12 @@ func TestMap(t *testing.T) {
 		rows, err = db.Query(`SELECT value FROM map;`)
 		assert.NoError(t, err)
 
-		m2 = StringMap{}
+		m2 = Map{}
 		assert.True(t, rows.Next())
 		err = rows.Scan(&m2)
 		assert.NoError(t, err)
 
 		assert.Equal(t, tc.Value.Map(), m2.Map())
+		assert.Equal(t, m2.GetString(tc.Key, ""), tc.KeyValue)
 	}
 }
