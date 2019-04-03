@@ -297,3 +297,69 @@ func TestString(t *testing.T) {
 		assert.True(t, tc.Value == str)
 	}
 }
+
+func TestMap(t *testing.T) {
+	db, err := sql.Open("postgres", "postgres://localhost/null_test?sslmode=disable")
+	assert.NoError(t, err)
+
+	_, err = db.Exec(`DROP TABLE IF EXISTS map; CREATE TABLE map(value varchar(255) null);`)
+	assert.NoError(t, err)
+
+	sp := func(s string) *string {
+		return &s
+	}
+
+	tcs := []struct {
+		Value StringMap
+		JSON  string
+		DB    *string
+	}{
+		{NewStringMap(map[string]string{"foo": "bar"}), `{"foo":"bar"}`, sp(`{"foo": "bar"}`)},
+		{NewStringMap(map[string]string{}), "null", nil},
+		{NewStringMap(nil), "null", nil},
+		{NewStringMap(nil), "null", sp("")},
+	}
+
+	for i, tc := range tcs {
+		_, err = db.Exec(`DELETE FROM map;`)
+		assert.NoError(t, err)
+
+		b, err := json.Marshal(tc.Value)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.JSON, string(b), "%d: %s not equal to %s", i, tc.JSON, string(b))
+
+		m := StringMap{}
+		err = json.Unmarshal(b, &m)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.Value.Map(), m.Map(), "%d: %s not equal to %s", i, tc.Value, m)
+
+		_, err = db.Exec(`INSERT INTO map(value) VALUES($1)`, tc.Value)
+		assert.NoError(t, err)
+
+		rows, err := db.Query(`SELECT value FROM map;`)
+		assert.NoError(t, err)
+
+		m2 := StringMap{}
+		assert.True(t, rows.Next())
+		err = rows.Scan(&m2)
+		assert.NoError(t, err)
+
+		assert.Equal(t, tc.Value.Map(), m2.Map())
+
+		_, err = db.Exec(`DELETE FROM map;`)
+		assert.NoError(t, err)
+
+		_, err = db.Exec(`INSERT INTO map(value) VALUES($1)`, tc.DB)
+		assert.NoError(t, err)
+
+		rows, err = db.Query(`SELECT value FROM map;`)
+		assert.NoError(t, err)
+
+		m2 = StringMap{}
+		assert.True(t, rows.Next())
+		err = rows.Scan(&m2)
+		assert.NoError(t, err)
+
+		assert.Equal(t, tc.Value.Map(), m2.Map())
+	}
+}
