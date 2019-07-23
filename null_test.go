@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	_ "github.com/lib/pq"
@@ -366,5 +367,81 @@ func TestMap(t *testing.T) {
 
 		assert.Equal(t, tc.Value.Map(), m2.Map())
 		assert.Equal(t, m2.GetString(tc.Key, ""), tc.KeyValue)
+	}
+}
+
+func TestJSON(t *testing.T) {
+	db, err := sql.Open("postgres", "postgres://localhost/null_test?sslmode=disable")
+	assert.NoError(t, err)
+
+	_, err = db.Exec(`DROP TABLE IF EXISTS json_test; CREATE TABLE json_test(value jsonb null);`)
+	assert.NoError(t, err)
+
+	sp := func(s string) *string {
+		return &s
+	}
+
+	tcs := []struct {
+		Value JSON
+		JSON  json.RawMessage
+		DB    *string
+	}{
+		{JSON(`{"foo":"bar"}`), json.RawMessage(`{"foo": "bar"}`), sp(`{"foo": "bar"}`)},
+		{JSON(nil), json.RawMessage("null"), nil},
+		{JSON(nil), json.RawMessage(`{}`), nil},
+		{JSON(nil), json.RawMessage("null"), sp(`{}`)},
+	}
+
+	for i, tc := range tcs {
+		_, err = db.Exec(`DELETE FROM json_test;`)
+		assert.NoError(t, err)
+
+		j := JSON("blah")
+
+		b, err := json.Marshal(tc.Value)
+		assert.NoError(t, err)
+
+		err = json.Unmarshal(b, &j)
+		assert.NoError(t, err)
+		assert.Equal(t, string(tc.Value), strings.Replace(string(j), " ", "", -1), "%d: values not equal", i)
+
+		err = json.Unmarshal(tc.JSON, &j)
+		assert.NoError(t, err)
+		assert.Equal(t, string(tc.Value), strings.Replace(string(j), " ", "", -1), "%d: values not equal", i)
+
+		_, err = db.Exec(`INSERT INTO json_test(value) VALUES($1)`, tc.Value)
+		assert.NoError(t, err)
+
+		rows, err := db.Query(`SELECT value FROM json_test;`)
+		assert.NoError(t, err)
+
+		assert.True(t, rows.Next())
+		err = rows.Scan(&j)
+		assert.NoError(t, err)
+
+		if tc.Value == nil {
+			assert.Nil(t, j)
+		} else {
+			assert.Equal(t, string(tc.Value), strings.Replace(string(j), " ", "", -1), "%d: values should be equal")
+		}
+
+		_, err = db.Exec(`DELETE FROM json_test;`)
+		assert.NoError(t, err)
+
+		_, err = db.Exec(`INSERT INTO json_test(value) VALUES($1)`, tc.DB)
+		assert.NoError(t, err)
+
+		rows, err = db.Query(`SELECT value FROM json_test;`)
+		assert.NoError(t, err)
+
+		assert.True(t, rows.Next())
+		err = rows.Scan(&j)
+		assert.NoError(t, err)
+
+		if tc.Value == nil {
+			assert.Nil(t, j)
+		} else {
+			assert.Equal(t, string(tc.Value), strings.Replace(string(j), " ", "", -1), "%d: values should be equal")
+		}
 	}
 }

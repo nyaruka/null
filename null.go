@@ -238,3 +238,70 @@ func (m *Map) UnmarshalJSON(data []byte) error {
 	}
 	return json.Unmarshal(data, &m.m)
 }
+
+// JSON is a json.RawMessage that will marshall as null when empty or nil.
+// null and {} values when unmashalled or scanned from a DB will result in a nil value
+type JSON json.RawMessage
+
+// Scan implements the Scanner interface for decoding from a database
+func (j *JSON) Scan(src interface{}) error {
+	if src == nil {
+		*j = nil
+		return nil
+	}
+
+	var source []byte
+	switch src.(type) {
+	case string:
+		source = []byte(src.(string))
+	case []byte:
+		source = src.([]byte)
+	default:
+		return fmt.Errorf("incompatible type for JSON type")
+	}
+
+	// 0 length string is same as nil
+	if len(source) == 0 || string(source) == "{}" {
+		*j = nil
+		return nil
+	}
+
+	if !json.Valid(source) {
+		return fmt.Errorf("invalid json: %s", source)
+	}
+	*j = source
+	return nil
+}
+
+// Value implements the driver Valuer interface
+func (j JSON) Value() (driver.Value, error) {
+	if len(j) == 0 || string(j) == "{}" {
+		return nil, nil
+	}
+	return []byte(j), nil
+}
+
+// MarshalJSON encodes our map to JSON
+func (j JSON) MarshalJSON() ([]byte, error) {
+	if len(j) == 0 || string(j) == "{}" {
+		return json.Marshal(nil)
+	}
+	return []byte(j), nil
+}
+
+// UnmarshalJSON sets our map from the passed in JSON
+func (j *JSON) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 || string(data) == "{}" || string(data) == "null" {
+		*j = nil
+		return nil
+	}
+
+	var jj json.RawMessage
+	err := json.Unmarshal(data, &jj)
+	if err != nil {
+		return err
+	}
+
+	*j = JSON(jj)
+	return nil
+}
