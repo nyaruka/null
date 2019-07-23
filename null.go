@@ -281,7 +281,7 @@ func (j JSON) Value() (driver.Value, error) {
 	return []byte(j), nil
 }
 
-// MarshalJSON encodes our map to JSON
+// MarshalJSON encodes our JSON to JSON or null
 func (j JSON) MarshalJSON() ([]byte, error) {
 	if len(j) == 0 || string(j) == "{}" {
 		return json.Marshal(nil)
@@ -289,7 +289,7 @@ func (j JSON) MarshalJSON() ([]byte, error) {
 	return []byte(j), nil
 }
 
-// UnmarshalJSON sets our map from the passed in JSON
+// UnmarshalJSON sets our JSON from the passed in JSON, {} is converted to null
 func (j *JSON) UnmarshalJSON(data []byte) error {
 	if len(data) == 0 || string(data) == "{}" || string(data) == "null" {
 		*j = nil
