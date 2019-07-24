@@ -260,12 +260,6 @@ func (j *JSON) Scan(src interface{}) error {
 		return fmt.Errorf("incompatible type for JSON type")
 	}
 
-	// 0 length string or `null` is treated as null
-	if len(source) == 0 || string(source) == "null" {
-		*j = nil
-		return nil
-	}
-
 	if !json.Valid(source) {
 		return fmt.Errorf("invalid json: %s", source)
 	}

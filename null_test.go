@@ -382,27 +382,23 @@ func TestJSON(t *testing.T) {
 	}
 
 	tcs := []struct {
-		Value     JSON
-		WriteJSON json.RawMessage
-		ReadJSON  json.RawMessage
-		WriteDB   *string
-		ReadDB    *string
+		Value JSON
+		JSON  json.RawMessage
+		DB    *string
 	}{
-		{JSON(`{"foo":"bar"}`), json.RawMessage(`{"foo":"bar"}`), json.RawMessage(`{"foo":"bar"}`), sp(`{"foo":"bar"}`), sp(`{"foo":"bar"}`)},
-		{JSON(nil), json.RawMessage(`null`), json.RawMessage(`null`), nil, nil},
-		{JSON(`{}`), json.RawMessage(`{}`), json.RawMessage(`{}`), sp(`{}`), sp(`{}`)},
-		{JSON(nil), json.RawMessage(`null`), json.RawMessage(`null`), nil, sp(`null`)},
-		{JSON([]byte{}), json.RawMessage(`null`), json.RawMessage(`null`), nil, nil},
+		{JSON(`{"foo":"bar"}`), json.RawMessage(`{"foo":"bar"}`), sp(`{"foo":"bar"}`)},
+		{JSON(nil), json.RawMessage(`null`), nil},
+		{JSON([]byte{}), json.RawMessage(`null`), nil},
 	}
 
 	for i, tc := range tcs {
 		// first test marshalling and unmarshalling to JSON
 		b, err := json.Marshal(tc.Value)
 		assert.NoError(t, err)
-		assert.Equal(t, string(tc.WriteJSON), string(b), "%d: marshalled json not equal", i)
+		assert.Equal(t, string(tc.JSON), string(b), "%d: marshalled json not equal", i)
 
 		j := JSON("blah")
-		err = json.Unmarshal(tc.ReadJSON, &j)
+		err = json.Unmarshal(tc.JSON, &j)
 		assert.NoError(t, err)
 		assert.Equal(t, string(tc.Value), string(j), "%d: unmarshalled json not equal", i)
 
@@ -410,7 +406,7 @@ func TestJSON(t *testing.T) {
 		_, err = db.Exec(`DELETE FROM json_test;`)
 		assert.NoError(t, err)
 
-		_, err = db.Exec(`INSERT INTO json_test(value) VALUES($1)`, tc.ReadDB)
+		_, err = db.Exec(`INSERT INTO json_test(value) VALUES($1)`, tc.DB)
 		assert.NoError(t, err)
 
 		rows, err := db.Query(`SELECT value FROM json_test;`)
@@ -422,7 +418,7 @@ func TestJSON(t *testing.T) {
 		assert.NoError(t, err)
 
 		if tc.Value == nil {
-			assert.Nil(t, j)
+			assert.Nil(t, j, "%d: read db value should be null", i)
 		} else {
 			assert.Equal(t, string(tc.Value), strings.Replace(string(j), " ", "", -1), "%d: read db value should be equal", i)
 		}
@@ -441,10 +437,10 @@ func TestJSON(t *testing.T) {
 		err = rows.Scan(&s)
 		assert.NoError(t, err)
 
-		if tc.WriteDB == nil {
-			assert.Nil(t, s)
+		if tc.DB == nil {
+			assert.Nil(t, s, "%d: written db value should be null", i)
 		} else {
-			assert.Equal(t, *tc.WriteDB, strings.Replace(*s, " ", "", -1), "%d: written db value should be equal", i)
+			assert.Equal(t, *tc.DB, strings.Replace(*s, " ", "", -1), "%d: written db value should be equal", i)
 		}
 	}
 }
