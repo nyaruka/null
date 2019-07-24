@@ -260,8 +260,8 @@ func (j *JSON) Scan(src interface{}) error {
 		return fmt.Errorf("incompatible type for JSON type")
 	}
 
-	// 0 length string is same as nil
-	if len(source) == 0 || string(source) == "{}" {
+	// 0 length string or `null` is treated as null
+	if len(source) == 0 || string(source) == "null" {
 		*j = nil
 		return nil
 	}
@@ -275,7 +275,7 @@ func (j *JSON) Scan(src interface{}) error {
 
 // Value implements the driver Valuer interface
 func (j JSON) Value() (driver.Value, error) {
-	if len(j) == 0 || string(j) == "{}" {
+	if len(j) == 0 {
 		return nil, nil
 	}
 	return []byte(j), nil
@@ -283,15 +283,15 @@ func (j JSON) Value() (driver.Value, error) {
 
 // MarshalJSON encodes our JSON to JSON or null
 func (j JSON) MarshalJSON() ([]byte, error) {
-	if len(j) == 0 || string(j) == "{}" {
+	if len(j) == 0 {
 		return json.Marshal(nil)
 	}
 	return []byte(j), nil
 }
 
-// UnmarshalJSON sets our JSON from the passed in JSON, {} is converted to null
+// UnmarshalJSON sets our JSON from the passed in JSON
 func (j *JSON) UnmarshalJSON(data []byte) error {
-	if len(data) == 0 || string(data) == "{}" || string(data) == "null" {
+	if string(data) == "null" {
 		*j = nil
 		return nil
 	}
