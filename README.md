@@ -1,18 +1,21 @@
 # null [![Build Status](https://github.com/nyaruka/null/workflows/CI/badge.svg)](https://github.com/nyaruka/null/actions?query=workflow%3ACI) [![codecov](https://codecov.io/gh/nyaruka/null/branch/main/graph/badge.svg)](https://codecov.io/gh/nyaruka/null) [![Go Report Card](https://goreportcard.com/badge/github.com/nyaruka/null)](https://goreportcard.com/report/github.com/nyaruka/null)
 
-This module provides (yet another) alternative to dealing with integers and strings which may be null in your JSON or 
-database. There are various different approaches to this, namely the built in 
-[golang SQL types](https://golang.org/pkg/database/sql/#NullInt64) and the 
-[guregu null module](https://github.com/guregu/null) which adds in JSON support. These are fine approaches but 
-both suffer from you having to deal with a struct type for your ids instead of a more natural int64 or string. That is fine
-in some cases but we prefer to use primitive types as assignment is more straightforward, simple equality works, etc.
+This module provides (yet another) alternative to dealing with null values in databases or JSON. Other approaches like 
+the [Null types](https://golang.org/pkg/database/sql/#NullInt64) in the standard library use structs to ensure you can 
+differentiate between zero values an null values. If that isn't a meaningful distinction in your app, then this module
+might be a simpler approach for you because it uses primitive values and treats zero values as null values.
 
-Sadly this requires a bit of boilerplate, so this package tries to make that a bit easier, proving helper methods for 
-marshalling to/from JSON and scanning to/from a database value.
+If you don't need to define your own types, you can use one of the following predefined types:
 
-To define your own ID type which is nullable when written:
+```go
+null.Int    // 0 saves as NULL, NULL scans as zero
+null.String // "" saves as NULL, NULL scans as ""
+null.Map    // empty map saves as NULL, NULL scans as empty map
+```
 
-```golang
+If you want to define a custom integer type, you need to define the following methods:
+
+```go
 import "github.com/nyaruka/null"
 
 type CustomID null.Int
@@ -40,9 +43,9 @@ func (i *CustomID) Scan(value interface{}) error {
 }
 ```
 
-The process is essentially the same for nullable strings:
+And likewise for a custom string type:
 
-```golang
+```go
 import "github.com/nyaruka/null"
 
 type CustomString null.String
@@ -68,18 +71,4 @@ func (s CustomString) Value() (driver.Value, error) {
 func (s *CustomString) Scan(value interface{}) error {
 	return null.ScanString(value, (*null.String)(s))
 }
-```
-
-If you don't care about type safety within your types, you can use a go alias which simplifies things. This is more
-useful for "stringy" things than it is for ids where you likely want to enforce type:
-
-```golang
-import "github.com/nyaruka/null"
-
-// Note you lose type safety with aliases. FooID can be assigned to BarID and vice versa!
-type FooID = null.Int
-type BarID = null.Int
-
-// Same here, any null.String can be assigned to CustomString
-type CustomString = null.String
 ```
