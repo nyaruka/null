@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,10 +34,9 @@ type OtherCustom = Int
 const NullCustomID = CustomID(0)
 
 func TestCustomInt(t *testing.T) {
-	db, err := sql.Open("postgres", "postgres://localhost/null_test?sslmode=disable")
-	assert.NoError(t, err)
+	db := getTestDB()
 
-	_, err = db.Exec(`DROP TABLE IF EXISTS custom_id; CREATE TABLE custom_id(id integer null);`)
+	_, err := db.Exec(`DROP TABLE IF EXISTS custom_id; CREATE TABLE custom_id(id integer null);`)
 	assert.NoError(t, err)
 
 	ten := int64(10)
@@ -99,10 +97,9 @@ func TestCustomInt(t *testing.T) {
 }
 
 func TestInt(t *testing.T) {
-	db, err := sql.Open("postgres", "postgres://localhost/null_test?sslmode=disable")
-	assert.NoError(t, err)
+	db := getTestDB()
 
-	_, err = db.Exec(`DROP TABLE IF EXISTS custom_id; CREATE TABLE custom_id(id integer null);`)
+	_, err := db.Exec(`DROP TABLE IF EXISTS custom_id; CREATE TABLE custom_id(id integer null);`)
 	assert.NoError(t, err)
 
 	ten := int64(10)
@@ -179,10 +176,9 @@ func (s *CustomString) Scan(value interface{}) error {
 const NullCustomString = CustomString("")
 
 func TestCustomString(t *testing.T) {
-	db, err := sql.Open("postgres", "postgres://localhost/null_test?sslmode=disable")
-	assert.NoError(t, err)
+	db := getTestDB()
 
-	_, err = db.Exec(`DROP TABLE IF EXISTS custom_string; CREATE TABLE custom_string(string varchar(255) null);`)
+	_, err := db.Exec(`DROP TABLE IF EXISTS custom_string; CREATE TABLE custom_string(string varchar(255) null);`)
 	assert.NoError(t, err)
 
 	foo := "foo"
@@ -241,10 +237,9 @@ func TestCustomString(t *testing.T) {
 }
 
 func TestString(t *testing.T) {
-	db, err := sql.Open("postgres", "postgres://localhost/null_test?sslmode=disable")
-	assert.NoError(t, err)
+	db := getTestDB()
 
-	_, err = db.Exec(`DROP TABLE IF EXISTS custom_string; CREATE TABLE custom_string(string varchar(255) null);`)
+	_, err := db.Exec(`DROP TABLE IF EXISTS custom_string; CREATE TABLE custom_string(string varchar(255) null);`)
 	assert.NoError(t, err)
 
 	foo := "foo"
@@ -300,10 +295,9 @@ func TestString(t *testing.T) {
 }
 
 func TestMap(t *testing.T) {
-	db, err := sql.Open("postgres", "postgres://localhost/null_test?sslmode=disable")
-	assert.NoError(t, err)
+	db := getTestDB()
 
-	_, err = db.Exec(`DROP TABLE IF EXISTS map; CREATE TABLE map(value varchar(255) null);`)
+	_, err := db.Exec(`DROP TABLE IF EXISTS map; CREATE TABLE map(value varchar(255) null);`)
 	assert.NoError(t, err)
 
 	sp := func(s string) *string {
@@ -371,10 +365,9 @@ func TestMap(t *testing.T) {
 }
 
 func TestJSON(t *testing.T) {
-	db, err := sql.Open("postgres", "postgres://localhost/null_test?sslmode=disable")
-	assert.NoError(t, err)
+	db := getTestDB()
 
-	_, err = db.Exec(`DROP TABLE IF EXISTS json_test; CREATE TABLE json_test(value jsonb null);`)
+	_, err := db.Exec(`DROP TABLE IF EXISTS json_test; CREATE TABLE json_test(value jsonb null);`)
 	assert.NoError(t, err)
 
 	sp := func(s string) *string {
@@ -443,4 +436,12 @@ func TestJSON(t *testing.T) {
 			assert.Equal(t, *tc.DB, strings.Replace(*s, " ", "", -1), "%d: written db value should be equal", i)
 		}
 	}
+}
+
+func getTestDB() *sql.DB {
+	db, err := sql.Open("postgres", "postgres://nyaruka:nyaruka@localhost/null_test?sslmode=disable")
+	if err != nil {
+		panic(err)
+	}
+	return db
 }

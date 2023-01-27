@@ -1,14 +1,14 @@
-# null int and string values
+# null [![Build Status](https://github.com/nyaruka/null/workflows/CI/badge.svg)](https://github.com/nyaruka/null/actions?query=workflow%3ACI) [![codecov](https://codecov.io/gh/nyaruka/null/branch/main/graph/badge.svg)](https://codecov.io/gh/nyaruka/null) [![Go Report Card](https://goreportcard.com/badge/github.com/nyaruka/null)](https://goreportcard.com/report/github.com/nyaruka/null)
 
-This module provides (yet another) alternative in dealing with integers and strings which may be null in your JSON or 
-database. There are various different approaches to this, namely the built in [golang SQL types](https://golang.org/pkg/database/sql/#NullInt64)
-and the [guregu null module](https://github.com/guregu/null) which adds in JSON support. These are fine approaches but 
+This module provides (yet another) alternative to dealing with integers and strings which may be null in your JSON or 
+database. There are various different approaches to this, namely the built in 
+[golang SQL types](https://golang.org/pkg/database/sql/#NullInt64) and the 
+[guregu null module](https://github.com/guregu/null) which adds in JSON support. These are fine approaches but 
 both suffer from you having to deal with a struct type for your ids instead of a more natural int64 or string. That is fine
-in some cases but I prefer to use more primitive types as assignment is more straightforward, simple equality works, etc.
+in some cases but we prefer to use primitive types as assignment is more straightforward, simple equality works, etc.
 
-Sadly this requires a bit of boilerplate, so this package tries to make that a bit easier, proving helper methods for marshalling to/from
-json and reading / scanning from a database value. Due to the Golang type system, using these requires some boilerplate, but I find it nicer
-to have a bit more code for my ID types and less awkward code around the usage of ids rather than vice versa.
+Sadly this requires a bit of boilerplate, so this package tries to make that a bit easier, proving helper methods for 
+marshalling to/from JSON and scanning to/from a database value.
 
 To define your own ID type which is nullable when written:
 
