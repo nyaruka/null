@@ -9,6 +9,7 @@ If you don't need to define your own types, you can use one of the following pre
 
 ```go
 null.Int    // 0 saves as NULL, NULL scans as zero
+null.Int64  // 0 saves as NULL, NULL scans as zero
 null.String // "" saves as NULL, NULL scans as ""
 null.Map    // empty map saves as NULL, NULL scans as empty map
 ```
@@ -18,28 +19,24 @@ If you want to define a custom integer type, you need to define the following me
 ```go
 import "github.com/nyaruka/null"
 
-type CustomID null.Int
+type CustomID int64
 
 const NullCustomID = CustomID(0)
 
-// MarshalJSON marshals into JSON. 0 values will become null
-func (i CustomID) MarshalJSON() ([]byte, error) {
-	return null.Int(i).MarshalJSON()
+func (i *CustomID) Scan(value any) error {
+	return null.ScanInt(value, i)
 }
 
-// UnmarshalJSON unmarshals from JSON. null values become 0
-func (i *CustomID) UnmarshalJSON(b []byte) error {
-	return null.UnmarshalInt(b, (*null.Int)(i))
-}
-
-// Value returns the db value, null is returned for 0
 func (i CustomID) Value() (driver.Value, error) {
-	return null.Int(i).Value()
+	return null.IntValue(i)
 }
 
-// Scan scans from the db value. null values become 0
-func (i *CustomID) Scan(value interface{}) error {
-	return null.ScanInt(value, (*null.Int)(i))
+func (i *CustomID) UnmarshalJSON(b []byte) error {
+	return null.UnmarshalInt(b, i)
+}
+
+func (i CustomID) MarshalJSON() ([]byte, error) {
+	return null.MarshalInt(i)
 }
 ```
 
@@ -48,27 +45,23 @@ And likewise for a custom string type:
 ```go
 import "github.com/nyaruka/null"
 
-type CustomString null.String
+type CustomString string
 
 type NullCustomString = CustomString("")
 
-// MarshalJSON marshals into JSON. "" values will become null
-func (s CustomString) MarshalJSON() ([]byte, error) {
-	return null.String(s).MarshalJSON()
+func (s *CustomString) Scan(value any) error {
+	return null.ScanString(value, s)
 }
 
-// UnmarshalJSON unmarshals from JSON. null values become ""
-func (s *CustomString) UnmarshalJSON(b []byte) error {
-	return null.UnmarshalString(b, (*null.String)(s))
-}
-
-// Value returns the db value, null is returned for ""
 func (s CustomString) Value() (driver.Value, error) {
-	return null.String(s).Value()
+	return null.StringValue(s)
 }
 
-// Scan scans from the db value. null values become ""
-func (s *CustomString) Scan(value interface{}) error {
-	return null.ScanString(value, (*null.String)(s))
+func (s CustomString) MarshalJSON() ([]byte, error) {
+	return null.MarshalString(s)
+}
+
+func (s *CustomString) UnmarshalJSON(b []byte) error {
+	return null.UnmarshalString(b, s)
 }
 ```

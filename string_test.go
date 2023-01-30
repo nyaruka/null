@@ -9,25 +9,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type CustomString null.String
+type CustomString string
 
-func (s CustomString) MarshalJSON() ([]byte, error) {
-	return null.String(s).MarshalJSON()
-}
+const NullCustomString = CustomString("")
 
-func (s *CustomString) UnmarshalJSON(b []byte) error {
-	return null.UnmarshalString(b, (*null.String)(s))
+func (s *CustomString) Scan(value any) error {
+	return null.ScanString(value, s)
 }
 
 func (s CustomString) Value() (driver.Value, error) {
-	return null.String(s).Value()
+	return null.StringValue(s)
 }
 
-func (s *CustomString) Scan(value interface{}) error {
-	return null.ScanString(value, (*null.String)(s))
+func (s CustomString) MarshalJSON() ([]byte, error) {
+	return null.MarshalString(s)
 }
 
-const NullCustomString = CustomString("")
+func (s *CustomString) UnmarshalJSON(b []byte) error {
+	return null.UnmarshalString(b, s)
+}
 
 func TestCustomString(t *testing.T) {
 	db := getTestDB()
