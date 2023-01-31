@@ -1,68 +1,73 @@
 package null
 
 import (
+	"bytes"
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 )
 
 // JSON is a json.RawMessage that will marshall as null when empty or nil.
-// null and {} values when unmashalled or scanned from a DB will result in a nil value
 type JSON json.RawMessage
 
-// Scan implements the Scanner interface for decoding from a database
-func (j *JSON) Scan(src interface{}) error {
-	if src == nil {
-		*j = nil
+var nullJSON = JSON(`null`)
+
+// Scan implements the Scanner interface
+func (j *JSON) Scan(value any) error { return ScanJSON(value, j) }
+
+// Value implements the Valuer interface
+func (j JSON) Value() (driver.Value, error) { return JSONValue(j) }
+
+// UnmarshalJSON implements the Unmarshaller interface
+func (j *JSON) UnmarshalJSON(data []byte) error { return UnmarshalJSON(data, j) }
+
+// MarshalJSON implements the Marshaller interface
+func (j JSON) MarshalJSON() ([]byte, error) { return MarshalJSON(j) }
+
+func ScanJSON(value any, j *JSON) error {
+	if value == nil {
+		*j = nullJSON
 		return nil
 	}
 
-	var source []byte
-	switch src.(type) {
+	var raw []byte
+	switch typed := value.(type) {
 	case string:
-		source = []byte(src.(string))
+		raw = []byte(typed)
 	case []byte:
-		source = src.([]byte)
+		raw = typed
 	default:
-		return fmt.Errorf("incompatible type for JSON type")
+		return fmt.Errorf("unable to scan %T as JSON", value)
 	}
 
-	if !json.Valid(source) {
-		return fmt.Errorf("invalid json: %s", source)
+	// empty bytes is same as nil
+	if len(raw) == 0 {
+		*j = nullJSON
+		return nil
 	}
-	*j = source
+
+	if !json.Valid(raw) {
+		return fmt.Errorf("scanned JSON isn't valid")
+	}
+
+	*j = raw
 	return nil
 }
 
-// Value implements the driver Valuer interface
-func (j JSON) Value() (driver.Value, error) {
-	if len(j) == 0 {
+func JSONValue(j JSON) (driver.Value, error) {
+	if len(j) == 0 || bytes.Equal(j, nullJSON) {
 		return nil, nil
 	}
 	return []byte(j), nil
 }
 
-// MarshalJSON encodes our JSON to JSON or null
-func (j JSON) MarshalJSON() ([]byte, error) {
+func UnmarshalJSON(data []byte, j *JSON) error {
+	return json.Unmarshal(data, (*json.RawMessage)(j))
+}
+
+func MarshalJSON(j JSON) ([]byte, error) {
 	if len(j) == 0 {
 		return json.Marshal(nil)
 	}
 	return []byte(j), nil
-}
-
-// UnmarshalJSON sets our JSON from the passed in JSON
-func (j *JSON) UnmarshalJSON(data []byte) error {
-	if string(data) == "null" {
-		*j = nil
-		return nil
-	}
-
-	var jj json.RawMessage
-	err := json.Unmarshal(data, &jj)
-	if err != nil {
-		return err
-	}
-
-	*j = JSON(jj)
-	return nil
 }

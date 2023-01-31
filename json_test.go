@@ -1,94 +1,75 @@
 package null_test
 
 import (
-	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
-	"strings"
 	"testing"
 
 	_ "github.com/lib/pq"
-	"github.com/nyaruka/null"
+	"github.com/nyaruka/null/v2"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestJSON(t *testing.T) {
 	db := getTestDB()
 
-	_, err := db.Exec(`DROP TABLE IF EXISTS json_test; CREATE TABLE json_test(value jsonb null);`)
-	assert.NoError(t, err)
-
-	sp := func(s string) *string {
-		return &s
-	}
-
-	tcs := []struct {
-		Value null.JSON
-		JSON  json.RawMessage
-		DB    *string
-	}{
-		{null.JSON(`{"foo":"bar"}`), json.RawMessage(`{"foo":"bar"}`), sp(`{"foo":"bar"}`)},
-		{null.JSON(nil), json.RawMessage(`null`), nil},
-		{null.JSON([]byte{}), json.RawMessage(`null`), nil},
-	}
-
-	for i, tc := range tcs {
-		// first test marshalling and unmarshalling to JSON
-		b, err := json.Marshal(tc.Value)
-		assert.NoError(t, err)
-		assert.Equal(t, string(tc.JSON), string(b), "%d: marshalled json not equal", i)
-
-		j := null.JSON("blah")
-		err = json.Unmarshal(tc.JSON, &j)
-		assert.NoError(t, err)
-		assert.Equal(t, string(tc.Value), string(j), "%d: unmarshalled json not equal", i)
-
-		// ok, now test writing and reading from DB
-		_, err = db.Exec(`DELETE FROM json_test;`)
-		assert.NoError(t, err)
-
-		_, err = db.Exec(`INSERT INTO json_test(value) VALUES($1)`, tc.DB)
-		assert.NoError(t, err)
-
-		rows, err := db.Query(`SELECT value FROM json_test;`)
-		assert.NoError(t, err)
-
-		assert.True(t, rows.Next())
-		j = null.JSON("blah")
-		err = rows.Scan(&j)
-		assert.NoError(t, err)
-
-		if tc.Value == nil {
-			assert.Nil(t, j, "%d: read db value should be null", i)
-		} else {
-			assert.Equal(t, string(tc.Value), strings.Replace(string(j), " ", "", -1), "%d: read db value should be equal", i)
+	testMap := func() {
+		tcs := []struct {
+			value     null.JSON
+			dbValue   driver.Value
+			marshaled []byte
+		}{
+			{null.JSON(`{"foo": "bar"}`), []byte(`{"foo": "bar"}`), []byte(`{"foo": "bar"}`)},
+			{null.JSON(`[1, 2, 3]`), []byte(`[1, 2, 3]`), []byte(`[1, 2, 3]`)},
+			{null.JSON(`{}`), []byte(`{}`), []byte(`{}`)},
+			{null.JSON(`null`), nil, []byte(`null`)},
+			{null.JSON(``), nil, []byte(`null`)},
+			{null.JSON(nil), nil, []byte(`null`)},
 		}
 
-		_, err = db.Exec(`DELETE FROM json_test;`)
-		assert.NoError(t, err)
+		for _, tc := range tcs {
+			mustExec(db, `DELETE FROM test`)
 
-		_, err = db.Exec(`INSERT INTO json_test(value) VALUES($1)`, tc.Value)
-		assert.NoError(t, err)
+			dbValue, err := tc.value.Value()
+			assert.NoError(t, err)
+			assert.Equal(t, tc.dbValue, dbValue, "db value mismatch for %v", tc.value)
 
-		rows, err = db.Query(`SELECT value FROM json_test;`)
-		assert.NoError(t, err)
+			// check writing the value to the database
+			_, err = db.Exec(`INSERT INTO test(value) VALUES($1)`, tc.value)
+			assert.NoError(t, err, "unexpected error writing %v", tc.value)
 
-		assert.True(t, rows.Next())
-		var s *string
-		err = rows.Scan(&s)
-		assert.NoError(t, err)
+			rows, err := db.Query(`SELECT value FROM test;`)
+			assert.NoError(t, err)
 
-		if tc.DB == nil {
-			assert.Nil(t, s, "%d: written db value should be null", i)
-		} else {
-			assert.Equal(t, *tc.DB, strings.Replace(*s, " ", "", -1), "%d: written db value should be equal", i)
+			scanned := null.JSON{}
+			assert.True(t, rows.Next())
+			err = rows.Scan(&scanned)
+			assert.NoError(t, err)
+
+			// we never return a nil JSON even if that's what we wrote
+			expected := tc.value
+			if len(expected) == 0 {
+				expected = null.JSON(`null`)
+			}
+
+			assert.Equal(t, expected, scanned, "scanned value mismatch for %v", tc.value)
+
+			marshaled, err := json.Marshal(tc.value)
+			assert.NoError(t, err)
+			assert.JSONEq(t, string(tc.marshaled), string(marshaled), "marshaled mismatch for %v", tc.value)
+
+			unmarshaled := null.JSON{}
+			err = json.Unmarshal(marshaled, &unmarshaled)
+			assert.NoError(t, err)
+			assert.JSONEq(t, string(expected), string(unmarshaled), "unmarshaled mismatch for %v", tc.value)
 		}
 	}
-}
 
-func getTestDB() *sql.DB {
-	db, err := sql.Open("postgres", "postgres://nyaruka:nyaruka@localhost/null_test?sslmode=disable")
-	if err != nil {
-		panic(err)
-	}
-	return db
+	// test with TEXT column
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(value text null);`)
+	testMap()
+
+	// test with JSONB column
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(value jsonb null);`)
+	testMap()
 }

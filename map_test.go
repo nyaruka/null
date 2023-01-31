@@ -1,80 +1,72 @@
 package null_test
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"testing"
 
 	_ "github.com/lib/pq"
-	"github.com/nyaruka/null"
+	"github.com/nyaruka/null/v2"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMap(t *testing.T) {
 	db := getTestDB()
 
-	_, err := db.Exec(`DROP TABLE IF EXISTS map; CREATE TABLE map(value varchar(255) null);`)
-	assert.NoError(t, err)
+	testMap := func() {
+		tcs := []struct {
+			value     null.Map
+			dbValue   driver.Value
+			marshaled []byte
+		}{
+			{null.Map{"foo": "bar"}, []byte(`{"foo":"bar"}`), []byte(`{"foo":"bar"}`)},
+			{null.Map{}, nil, []byte(`null`)},
+			{null.Map(nil), nil, []byte(`null`)},
+		}
 
-	sp := func(s string) *string {
-		return &s
+		for _, tc := range tcs {
+			mustExec(db, `DELETE FROM test`)
+
+			dbValue, err := tc.value.Value()
+			assert.NoError(t, err)
+			assert.Equal(t, tc.dbValue, dbValue, "db value mismatch for %v", tc.value)
+
+			// check writing the value to the database
+			_, err = db.Exec(`INSERT INTO test(value) VALUES($1)`, tc.value)
+			assert.NoError(t, err, "unexpected error writing %v", tc.value)
+
+			rows, err := db.Query(`SELECT value FROM test;`)
+			assert.NoError(t, err)
+
+			scanned := null.Map{}
+			assert.True(t, rows.Next())
+			err = rows.Scan(&scanned)
+			assert.NoError(t, err)
+
+			// we never return a nil map even if that's what we wrote
+			expected := tc.value
+			if expected == nil {
+				expected = null.Map{}
+			}
+
+			assert.Equal(t, expected, scanned, "scanned value mismatch for %v", tc.value)
+
+			marshaled, err := json.Marshal(tc.value)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.marshaled, marshaled, "marshaled mismatch for %v", tc.value)
+
+			unmarshaled := null.Map{}
+			err = json.Unmarshal(marshaled, &unmarshaled)
+			assert.NoError(t, err)
+			assert.Equal(t, expected, unmarshaled, "unmarshaled mismatch for %v", tc.value)
+		}
 	}
 
-	tcs := []struct {
-		Value    null.Map
-		JSON     string
-		DB       *string
-		Key      string
-		KeyValue string
-	}{
-		{null.NewMap(map[string]interface{}{"foo": "bar"}), `{"foo":"bar"}`, sp(`{"foo": "bar"}`), "foo", "bar"},
-		{null.NewMap(map[string]interface{}{}), "null", nil, "foo", ""},
-		{null.NewMap(nil), "null", nil, "foo", ""},
-		{null.NewMap(nil), "null", sp(""), "foo", ""},
-	}
+	// test with TEXT column
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(value text null);`)
+	testMap()
 
-	for i, tc := range tcs {
-		_, err = db.Exec(`DELETE FROM map;`)
-		assert.NoError(t, err)
-
-		b, err := json.Marshal(tc.Value)
-		assert.NoError(t, err)
-		assert.Equal(t, tc.JSON, string(b), "%d: %s not equal to %s", i, tc.JSON, string(b))
-
-		m := null.Map{}
-		err = json.Unmarshal(b, &m)
-		assert.NoError(t, err)
-		assert.Equal(t, tc.Value.Map(), m.Map(), "%d: %s not equal to %s", i, tc.Value, m)
-		assert.Equal(t, m.GetString(tc.Key, ""), tc.KeyValue)
-
-		_, err = db.Exec(`INSERT INTO map(value) VALUES($1)`, tc.Value)
-		assert.NoError(t, err)
-
-		rows, err := db.Query(`SELECT value FROM map;`)
-		assert.NoError(t, err)
-
-		m2 := null.Map{}
-		assert.True(t, rows.Next())
-		err = rows.Scan(&m2)
-		assert.NoError(t, err)
-
-		assert.Equal(t, tc.Value.Map(), m2.Map())
-		assert.Equal(t, m2.GetString(tc.Key, ""), tc.KeyValue)
-
-		_, err = db.Exec(`DELETE FROM map;`)
-		assert.NoError(t, err)
-
-		_, err = db.Exec(`INSERT INTO map(value) VALUES($1)`, tc.DB)
-		assert.NoError(t, err)
-
-		rows, err = db.Query(`SELECT value FROM map;`)
-		assert.NoError(t, err)
-
-		m2 = null.Map{}
-		assert.True(t, rows.Next())
-		err = rows.Scan(&m2)
-		assert.NoError(t, err)
-
-		assert.Equal(t, tc.Value.Map(), m2.Map())
-		assert.Equal(t, m2.GetString(tc.Key, ""), tc.KeyValue)
-	}
+	// test with JSONB column
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(value jsonb null);`)
+	testMap()
 }
