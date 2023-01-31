@@ -11,57 +11,35 @@ If you don't need to define your own types, you can use one of the following pre
 null.Int    // 0 saves as NULL, NULL scans as zero
 null.Int64  // 0 saves as NULL, NULL scans as zero
 null.String // "" saves as NULL, NULL scans as ""
-null.Map    // empty map saves as NULL, NULL scans as empty map
+null.Map    // empty map or nil saves as NULL, NULL scans as empty map
 ```
 
 If you want to define a custom integer type, you need to define the following methods:
 
 ```go
-import "github.com/nyaruka/null"
+import "github.com/nyaruka/null/v2"
 
 type CustomID int64
 
 const NullCustomID = CustomID(0)
 
-func (i *CustomID) Scan(value any) error {
-	return null.ScanInt(value, i)
-}
-
-func (i CustomID) Value() (driver.Value, error) {
-	return null.IntValue(i)
-}
-
-func (i *CustomID) UnmarshalJSON(b []byte) error {
-	return null.UnmarshalInt(b, i)
-}
-
-func (i CustomID) MarshalJSON() ([]byte, error) {
-	return null.MarshalInt(i)
-}
+func (i *CustomID) Scan(value any) error         { return null.ScanInt(value, i) }
+func (i CustomID) Value() (driver.Value, error)  { return null.IntValue(i) }
+func (i *CustomID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i) }
+func (i CustomID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
 ```
 
 And likewise for a custom string type:
 
 ```go
-import "github.com/nyaruka/null"
+import "github.com/nyaruka/null/v2"
 
 type CustomString string
 
 type NullCustomString = CustomString("")
 
-func (s *CustomString) Scan(value any) error {
-	return null.ScanString(value, s)
-}
-
-func (s CustomString) Value() (driver.Value, error) {
-	return null.StringValue(s)
-}
-
-func (s CustomString) MarshalJSON() ([]byte, error) {
-	return null.MarshalString(s)
-}
-
-func (s *CustomString) UnmarshalJSON(b []byte) error {
-	return null.UnmarshalString(b, s)
-}
+func (s *CustomString) Scan(value any) error         { return null.ScanString(value, s) }
+func (s CustomString) Value() (driver.Value, error)  { return null.StringValue(s) }
+func (s CustomString) MarshalJSON() ([]byte, error)  { return null.MarshalString(s) }
+func (s *CustomString) UnmarshalJSON(b []byte) error { return null.UnmarshalString(b, s) }
 ```

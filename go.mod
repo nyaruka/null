@@ -1,4 +1,4 @@
-module github.com/nyaruka/null
+module github.com/nyaruka/null/v2
 
 go 1.18
 

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
-	"github.com/nyaruka/null"
+	"github.com/nyaruka/null/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,23 +15,10 @@ type CustomID int64
 
 const NullCustomID = CustomID(0)
 
-func (i *CustomID) Scan(value any) error {
-	return null.ScanInt(value, i)
-}
-
-func (i CustomID) Value() (driver.Value, error) {
-	return null.IntValue(i)
-}
-
-func (i *CustomID) UnmarshalJSON(b []byte) error {
-	return null.UnmarshalInt(b, i)
-}
-
-func (i CustomID) MarshalJSON() ([]byte, error) {
-	return null.MarshalInt(i)
-}
-
-type OtherCustom = null.Int64
+func (i *CustomID) Scan(value any) error         { return null.ScanInt(value, i) }
+func (i CustomID) Value() (driver.Value, error)  { return null.IntValue(i) }
+func (i *CustomID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i) }
+func (i CustomID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
 
 func TestCustomInt64(t *testing.T) {
 	db := getTestDB()
@@ -50,7 +37,6 @@ func TestCustomInt64(t *testing.T) {
 		{CustomID(0), "null", nil, NullCustomID},
 		{10, "10", &ten, CustomID(10)},
 		{NullCustomID, "null", nil, CustomID(0)},
-		// {OtherCustom(10), "10", &ten}  // error, not the same type
 	}
 
 	for i, tc := range tcs {

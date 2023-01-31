@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/nyaruka/null"
+	"github.com/nyaruka/null/v2"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,21 +13,10 @@ type CustomString string
 
 const NullCustomString = CustomString("")
 
-func (s *CustomString) Scan(value any) error {
-	return null.ScanString(value, s)
-}
-
-func (s CustomString) Value() (driver.Value, error) {
-	return null.StringValue(s)
-}
-
-func (s CustomString) MarshalJSON() ([]byte, error) {
-	return null.MarshalString(s)
-}
-
-func (s *CustomString) UnmarshalJSON(b []byte) error {
-	return null.UnmarshalString(b, s)
-}
+func (s *CustomString) Scan(value any) error         { return null.ScanString(value, s) }
+func (s CustomString) Value() (driver.Value, error)  { return null.StringValue(s) }
+func (s CustomString) MarshalJSON() ([]byte, error)  { return null.MarshalString(s) }
+func (s *CustomString) UnmarshalJSON(b []byte) error { return null.UnmarshalString(b, s) }
 
 func TestCustomString(t *testing.T) {
 	db := getTestDB()

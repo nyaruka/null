@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	_ "github.com/lib/pq"
-	"github.com/nyaruka/null"
+	"github.com/nyaruka/null/v2"
 	"github.com/stretchr/testify/assert"
 )
 
