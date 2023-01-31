@@ -1,6 +1,7 @@
 package null_test
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
 	"testing"
@@ -35,8 +36,7 @@ type OtherCustom = null.Int64
 func TestCustomInt64(t *testing.T) {
 	db := getTestDB()
 
-	_, err := db.Exec(`DROP TABLE IF EXISTS custom_id; CREATE TABLE custom_id(id integer null);`)
-	assert.NoError(t, err)
+	mustExec(db, `DROP TABLE IF EXISTS custom_id; CREATE TABLE custom_id(id integer null);`)
 
 	ten := int64(10)
 
@@ -54,8 +54,7 @@ func TestCustomInt64(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		_, err = db.Exec(`DELETE FROM custom_id;`)
-		assert.NoError(t, err)
+		mustExec(db, `DELETE FROM custom_id;`)
 
 		b, err := json.Marshal(tc.Value)
 		assert.NoError(t, err)
@@ -98,8 +97,7 @@ func TestCustomInt64(t *testing.T) {
 func TestInt64(t *testing.T) {
 	db := getTestDB()
 
-	_, err := db.Exec(`DROP TABLE IF EXISTS custom_id; CREATE TABLE custom_id(id integer null);`)
-	assert.NoError(t, err)
+	mustExec(db, `DROP TABLE IF EXISTS custom_id; CREATE TABLE custom_id(id integer null);`)
 
 	ten := int64(10)
 
@@ -115,8 +113,7 @@ func TestInt64(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		_, err = db.Exec(`DELETE FROM custom_id;`)
-		assert.NoError(t, err)
+		mustExec(db, `DELETE FROM custom_id;`)
 
 		b, err := json.Marshal(tc.Value)
 		assert.NoError(t, err)
@@ -152,4 +149,20 @@ func TestInt64(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, tc.Value == id)
 	}
+}
+
+func getTestDB() *sql.DB {
+	db, err := sql.Open("postgres", "postgres://nyaruka:nyaruka@localhost/null_test?sslmode=disable")
+	if err != nil {
+		panic(err)
+	}
+	return db
+}
+
+func mustExec(db *sql.DB, q string) sql.Result {
+	res, err := db.Exec(q)
+	if err != nil {
+		panic(err)
+	}
+	return res
 }

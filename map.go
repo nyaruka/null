@@ -6,103 +6,74 @@ import (
 	"fmt"
 )
 
-// Map is a one level deep dictionary that is represented as JSON text in the database.
-// Empty maps will be written as null to the database and to JSON.
-type Map struct {
-	m map[string]interface{}
-}
+// Map is a generic map which is written to the database as JSON.
+type Map map[string]any
 
-// NewMap creates a new Map
-func NewMap(m map[string]interface{}) Map {
-	return Map{m: m}
-}
+// Scan implements the Scanner interface
+func (m *Map) Scan(value any) error { return ScanMap(value, m) }
 
-// Map returns our underlying map
-func (m *Map) Map() map[string]interface{} {
-	if m.m == nil {
-		m.m = make(map[string]interface{})
-	}
-	return m.m
-}
+// Value implements the Valuer interface
+func (m Map) Value() (driver.Value, error) { return MapValue(m) }
 
-// GetString returns the string value with the passed in key, or def if not found or of wrong type
-func (m *Map) GetString(key string, def string) string {
-	if m.m == nil {
-		return def
-	}
-	val := m.m[key]
-	if val == nil {
-		return def
-	}
-	str, isStr := val.(string)
-	if !isStr {
-		return def
-	}
-	return str
-}
+// UnmarshalJSON implements the Unmarshaller interface
+func (m *Map) UnmarshalJSON(data []byte) error { return UnmarshalMap(data, m) }
 
-// Get returns the  value with the passed in key, or def if not found
-func (m *Map) Get(key string, def interface{}) interface{} {
-	if m.m == nil {
-		return def
-	}
-	val := m.m[key]
-	if val == nil {
-		return def
-	}
-	return val
-}
+// MarshalJSON implements the Marshaller interface
+func (m Map) MarshalJSON() ([]byte, error) { return MarshalMap(m) }
 
-// Scan implements the Scanner interface for decoding from a database
-func (m *Map) Scan(src interface{}) error {
-	m.m = make(map[string]interface{})
-	if src == nil {
+// ScanMap scans a nullable text or JSON into a map, using an empty map for NULL.
+func ScanMap(value any, m *Map) error {
+	*m = make(Map) // initialize empty map
+
+	if value == nil {
 		return nil
 	}
 
-	var source []byte
-	switch src.(type) {
+	var raw []byte
+	switch typed := value.(type) {
 	case string:
-		source = []byte(src.(string))
+		raw = []byte(typed)
 	case []byte:
-		source = src.([]byte)
+		raw = typed
 	default:
-		return fmt.Errorf("incompatible type for map")
+		return fmt.Errorf("unable to scan %T as map", value)
 	}
 
 	// 0 length string is same as nil
-	if len(source) == 0 {
+	if len(raw) == 0 {
 		return nil
 	}
-
-	err := json.Unmarshal(source, &m.m)
-	if err != nil {
+	if err := json.Unmarshal(raw, m); err != nil {
 		return err
 	}
+
 	return nil
 }
 
-// Value implements the driver Valuer interface
-func (m Map) Value() (driver.Value, error) {
-	if m.m == nil || len(m.m) == 0 {
+// MapValue converts a map to NULL if it is empty.
+func MapValue(m Map) (driver.Value, error) {
+	if len(m) == 0 {
 		return nil, nil
 	}
-	return json.Marshal(m.m)
+	return json.Marshal(m)
 }
 
-// MarshalJSON encodes our map to JSON
-func (m Map) MarshalJSON() ([]byte, error) {
-	if m.m == nil || len(m.m) == 0 {
+// MarshalMap marshals a map, returning null for an empty map.
+func MarshalMap(m Map) ([]byte, error) {
+	if len(m) == 0 {
 		return json.Marshal(nil)
 	}
-	return json.Marshal(m.m)
+	return json.Marshal(map[string]any(m))
 }
 
-// UnmarshalJSON sets our map from the passed in JSON
-func (m *Map) UnmarshalJSON(data []byte) error {
-	m.m = make(map[string]interface{})
-	if len(data) == 0 {
-		return nil
+func UnmarshalMap(data []byte, m *Map) error {
+	err := json.Unmarshal(data, (*map[string]any)(m))
+	if err != nil {
+		return err
 	}
-	return json.Unmarshal(data, &m.m)
+
+	if *m == nil {
+		*m = make(Map) // initialize empty map
+	}
+	return nil
 }

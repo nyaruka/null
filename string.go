@@ -14,24 +14,16 @@ type String string
 const NullString = String("")
 
 // Scan implements the Scanner interface
-func (s *String) Scan(value any) error {
-	return ScanString(value, s)
-}
+func (s *String) Scan(value any) error { return ScanString(value, s) }
 
 // Value implements the Valuer interface
-func (s String) Value() (driver.Value, error) {
-	return StringValue(s)
-}
+func (s String) Value() (driver.Value, error) { return StringValue(s) }
 
 // UnmarshalJSON implements the Unmarshaller interface
-func (s *String) UnmarshalJSON(b []byte) error {
-	return UnmarshalString(b, s)
-}
+func (s *String) UnmarshalJSON(b []byte) error { return UnmarshalString(b, s) }
 
 // MarshalJSON implements the Marshaller interface
-func (s String) MarshalJSON() ([]byte, error) {
-	return MarshalString(s)
-}
+func (s String) MarshalJSON() ([]byte, error) { return MarshalString(s) }
 
 // ScanString scans a nullable CHAR/TEXT into a string type, using empty string for NULL.
 func ScanString[T ~string](value any, s *T) error {

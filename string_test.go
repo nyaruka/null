@@ -32,8 +32,7 @@ func (s *CustomString) UnmarshalJSON(b []byte) error {
 func TestCustomString(t *testing.T) {
 	db := getTestDB()
 
-	_, err := db.Exec(`DROP TABLE IF EXISTS custom_string; CREATE TABLE custom_string(string varchar(255) null);`)
-	assert.NoError(t, err)
+	mustExec(db, `DROP TABLE IF EXISTS custom_string; CREATE TABLE custom_string(string varchar(255) null);`)
 
 	foo := "foo"
 
@@ -49,8 +48,7 @@ func TestCustomString(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		_, err = db.Exec(`DELETE FROM custom_string;`)
-		assert.NoError(t, err)
+		mustExec(db, `DELETE FROM custom_string;`)
 
 		b, err := json.Marshal(tc.Value)
 		assert.NoError(t, err)
@@ -93,8 +91,7 @@ func TestCustomString(t *testing.T) {
 func TestString(t *testing.T) {
 	db := getTestDB()
 
-	_, err := db.Exec(`DROP TABLE IF EXISTS custom_string; CREATE TABLE custom_string(string varchar(255) null);`)
-	assert.NoError(t, err)
+	mustExec(db, `DROP TABLE IF EXISTS custom_string; CREATE TABLE custom_string(string varchar(255) null);`)
 
 	foo := "foo"
 
@@ -109,8 +106,7 @@ func TestString(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		_, err = db.Exec(`DELETE FROM custom_string;`)
-		assert.NoError(t, err)
+		mustExec(db, `DELETE FROM custom_string;`)
 
 		b, err := json.Marshal(tc.Value)
 		assert.NoError(t, err)

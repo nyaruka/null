@@ -1,7 +1,6 @@
 package null_test
 
 import (
-	"database/sql"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -83,12 +82,4 @@ func TestJSON(t *testing.T) {
 			assert.Equal(t, *tc.DB, strings.Replace(*s, " ", "", -1), "%d: written db value should be equal", i)
 		}
 	}
-}
-
-func getTestDB() *sql.DB {
-	db, err := sql.Open("postgres", "postgres://nyaruka:nyaruka@localhost/null_test?sslmode=disable")
-	if err != nil {
-		panic(err)
-	}
-	return db
 }
