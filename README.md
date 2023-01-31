@@ -12,6 +12,7 @@ null.Int    // 0 saves as NULL, NULL scans as zero
 null.Int64  // 0 saves as NULL, NULL scans as zero
 null.String // "" saves as NULL, NULL scans as ""
 null.Map    // empty map or nil saves as NULL, NULL scans as empty map
+null.JSON   // empty or 'null' saves as NULL, NULL scans as 'null'
 ```
 
 If you want to define a custom integer type, you need to define the following methods:

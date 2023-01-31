@@ -25,18 +25,18 @@ func TestMap(t *testing.T) {
 		}
 
 		for _, tc := range tcs {
-			_, err := db.Exec(`DELETE FROM map;`)
+			_, err := db.Exec(`DELETE FROM test;`)
 			assert.NoError(t, err)
 
 			dbValue, err := tc.value.Value()
 			assert.NoError(t, err)
-			assert.Equal(t, tc.dbValue, dbValue)
+			assert.Equal(t, tc.dbValue, dbValue, "db value mismatch for %v", tc.value)
 
 			// check writing the value to the database
-			_, err = db.Exec(`INSERT INTO map(value) VALUES($1)`, tc.value)
-			assert.NoError(t, err)
+			_, err = db.Exec(`INSERT INTO test(value) VALUES($1)`, tc.value)
+			assert.NoError(t, err, "unexpected error writing %v", tc.value)
 
-			rows, err := db.Query(`SELECT value FROM map;`)
+			rows, err := db.Query(`SELECT value FROM test;`)
 			assert.NoError(t, err)
 
 			scanned := null.Map{}
@@ -50,24 +50,24 @@ func TestMap(t *testing.T) {
 				expected = null.Map{}
 			}
 
-			assert.Equal(t, expected, scanned)
+			assert.Equal(t, expected, scanned, "scanned value mismatch for %v", tc.value)
 
 			marshaled, err := json.Marshal(tc.value)
 			assert.NoError(t, err)
-			assert.Equal(t, tc.marshaled, marshaled)
+			assert.Equal(t, tc.marshaled, marshaled, "marshaled mismatch for %v", tc.value)
 
 			unmarshaled := null.Map{}
 			err = json.Unmarshal(marshaled, &unmarshaled)
 			assert.NoError(t, err)
-			assert.Equal(t, expected, unmarshaled)
+			assert.Equal(t, expected, unmarshaled, "unmarshaled mismatch for %v", tc.value)
 		}
 	}
 
-	mustExec(db, `DROP TABLE IF EXISTS map; CREATE TABLE map(value text null);`)
-
+	// test with TEXT column
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(value text null);`)
 	testMap()
 
-	mustExec(db, `DROP TABLE IF EXISTS map; CREATE TABLE map(value jsonb null);`)
-
+	// test with JSONB column
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(value jsonb null);`)
 	testMap()
 }

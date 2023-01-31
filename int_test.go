@@ -23,7 +23,7 @@ func (i CustomID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
 func TestCustomInt64(t *testing.T) {
 	db := getTestDB()
 
-	mustExec(db, `DROP TABLE IF EXISTS custom_id; CREATE TABLE custom_id(id integer null);`)
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(id INT NULL);`)
 
 	ten := int64(10)
 
@@ -40,7 +40,7 @@ func TestCustomInt64(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		mustExec(db, `DELETE FROM custom_id;`)
+		mustExec(db, `DELETE FROM test;`)
 
 		b, err := json.Marshal(tc.Value)
 		assert.NoError(t, err)
@@ -52,10 +52,10 @@ func TestCustomInt64(t *testing.T) {
 		assert.True(t, tc.Value == id, "%d: %s not equal to %s", i, tc.Value, id)
 		assert.True(t, tc.Test == id, "%d: %s not equal to %s", i, tc.Test, id)
 
-		_, err = db.Exec(`INSERT INTO custom_id(id) VALUES($1)`, tc.Value)
+		_, err = db.Exec(`INSERT INTO test(id) VALUES($1)`, tc.Value)
 		assert.NoError(t, err)
 
-		rows, err := db.Query(`SELECT id FROM custom_id;`)
+		rows, err := db.Query(`SELECT id FROM test;`)
 		assert.NoError(t, err)
 
 		var intID *int64
@@ -69,7 +69,7 @@ func TestCustomInt64(t *testing.T) {
 			assert.True(t, *tc.DB == *intID)
 		}
 
-		rows, err = db.Query(`SELECT id FROM custom_id;`)
+		rows, err = db.Query(`SELECT id FROM test;`)
 		assert.NoError(t, err)
 
 		assert.True(t, rows.Next())
@@ -83,7 +83,7 @@ func TestCustomInt64(t *testing.T) {
 func TestInt64(t *testing.T) {
 	db := getTestDB()
 
-	mustExec(db, `DROP TABLE IF EXISTS custom_id; CREATE TABLE custom_id(id integer null);`)
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(id BIGINT NULL);`)
 
 	ten := int64(10)
 
@@ -99,7 +99,7 @@ func TestInt64(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		mustExec(db, `DELETE FROM custom_id;`)
+		mustExec(db, `DELETE FROM test;`)
 
 		b, err := json.Marshal(tc.Value)
 		assert.NoError(t, err)
@@ -110,10 +110,10 @@ func TestInt64(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, tc.Value == id)
 
-		_, err = db.Exec(`INSERT INTO custom_id(id) VALUES($1)`, tc.Value)
+		_, err = db.Exec(`INSERT INTO test(id) VALUES($1)`, tc.Value)
 		assert.NoError(t, err)
 
-		rows, err := db.Query(`SELECT id FROM custom_id;`)
+		rows, err := db.Query(`SELECT id FROM test;`)
 		assert.NoError(t, err)
 
 		var intID *int64
@@ -127,7 +127,7 @@ func TestInt64(t *testing.T) {
 			assert.True(t, *tc.DB == *intID)
 		}
 
-		rows, err = db.Query(`SELECT id FROM custom_id;`)
+		rows, err = db.Query(`SELECT id FROM test;`)
 		assert.NoError(t, err)
 
 		assert.True(t, rows.Next())

@@ -23,9 +23,8 @@ func (m Map) MarshalJSON() ([]byte, error) { return MarshalMap(m) }
 
 // ScanMap scans a nullable text or JSON into a map, using an empty map for NULL.
 func ScanMap(value any, m *Map) error {
-	*m = make(Map) // initialize empty map
-
 	if value == nil {
+		*m = make(Map)
 		return nil
 	}
 
@@ -39,10 +38,12 @@ func ScanMap(value any, m *Map) error {
 		return fmt.Errorf("unable to scan %T as map", value)
 	}
 
-	// 0 length string is same as nil
+	// empty bytes is same as nil
 	if len(raw) == 0 {
+		*m = make(Map)
 		return nil
 	}
+
 	if err := json.Unmarshal(raw, m); err != nil {
 		return err
 	}

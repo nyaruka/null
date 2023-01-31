@@ -21,7 +21,7 @@ func (s *CustomString) UnmarshalJSON(b []byte) error { return null.UnmarshalStri
 func TestCustomString(t *testing.T) {
 	db := getTestDB()
 
-	mustExec(db, `DROP TABLE IF EXISTS custom_string; CREATE TABLE custom_string(string varchar(255) null);`)
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(string varchar(255) null);`)
 
 	foo := "foo"
 
@@ -37,7 +37,7 @@ func TestCustomString(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		mustExec(db, `DELETE FROM custom_string;`)
+		mustExec(db, `DELETE FROM test;`)
 
 		b, err := json.Marshal(tc.Value)
 		assert.NoError(t, err)
@@ -49,10 +49,10 @@ func TestCustomString(t *testing.T) {
 		assert.True(t, tc.Value == str)
 		assert.True(t, tc.Test == str)
 
-		_, err = db.Exec(`INSERT INTO custom_string(string) VALUES($1)`, tc.Value)
+		_, err = db.Exec(`INSERT INTO test(string) VALUES($1)`, tc.Value)
 		assert.NoError(t, err)
 
-		rows, err := db.Query(`SELECT string FROM custom_string;`)
+		rows, err := db.Query(`SELECT string FROM test;`)
 		assert.NoError(t, err)
 
 		var nullStr *string
@@ -66,7 +66,7 @@ func TestCustomString(t *testing.T) {
 			assert.True(t, *tc.DB == *nullStr)
 		}
 
-		rows, err = db.Query(`SELECT string FROM custom_string;`)
+		rows, err = db.Query(`SELECT string FROM test;`)
 		assert.NoError(t, err)
 
 		assert.True(t, rows.Next())
@@ -80,7 +80,7 @@ func TestCustomString(t *testing.T) {
 func TestString(t *testing.T) {
 	db := getTestDB()
 
-	mustExec(db, `DROP TABLE IF EXISTS custom_string; CREATE TABLE custom_string(string varchar(255) null);`)
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(string VARCHAR(255) NULL);`)
 
 	foo := "foo"
 
@@ -95,7 +95,7 @@ func TestString(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		mustExec(db, `DELETE FROM custom_string;`)
+		mustExec(db, `DELETE FROM test;`)
 
 		b, err := json.Marshal(tc.Value)
 		assert.NoError(t, err)
@@ -106,10 +106,10 @@ func TestString(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, tc.Value == str, "%d: %s not equal to %s", i, tc.Value, str)
 
-		_, err = db.Exec(`INSERT INTO custom_string(string) VALUES($1)`, tc.Value)
+		_, err = db.Exec(`INSERT INTO test(string) VALUES($1)`, tc.Value)
 		assert.NoError(t, err)
 
-		rows, err := db.Query(`SELECT string FROM custom_string;`)
+		rows, err := db.Query(`SELECT string FROM test;`)
 		assert.NoError(t, err)
 
 		var nullStr *string
@@ -123,7 +123,7 @@ func TestString(t *testing.T) {
 			assert.True(t, *tc.DB == *nullStr)
 		}
 
-		rows, err = db.Query(`SELECT string FROM custom_string;`)
+		rows, err = db.Query(`SELECT string FROM test;`)
 		assert.NoError(t, err)
 
 		assert.True(t, rows.Next())
