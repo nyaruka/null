@@ -11,6 +11,98 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestInt(t *testing.T) {
+	db := getTestDB()
+
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(value VARCHAR(255) NULL);`)
+
+	tcs := []struct {
+		value     null.Int
+		dbValue   driver.Value
+		marshaled []byte
+	}{
+		{null.Int(123), int64(123), []byte(`123`)},
+		{null.NullInt, nil, []byte(`null`)},
+	}
+
+	for _, tc := range tcs {
+		mustExec(db, `DELETE FROM test`)
+
+		dbValue, err := tc.value.Value()
+		assert.NoError(t, err)
+		assert.Equal(t, tc.dbValue, dbValue, "db value mismatch for %v", tc.value)
+
+		// check writing the value to the database
+		_, err = db.Exec(`INSERT INTO test(value) VALUES($1)`, tc.value)
+		assert.NoError(t, err, "unexpected error writing %v", tc.value)
+
+		rows, err := db.Query(`SELECT value FROM test;`)
+		assert.NoError(t, err)
+
+		var scanned null.Int
+		assert.True(t, rows.Next())
+		err = rows.Scan(&scanned)
+		assert.NoError(t, err)
+
+		assert.Equal(t, tc.value, scanned, "scanned value mismatch for %v", tc.value)
+
+		marshaled, err := json.Marshal(tc.value)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.marshaled, marshaled, "marshaled mismatch for %v", tc.value)
+
+		var unmarshaled null.Int
+		err = json.Unmarshal(marshaled, &unmarshaled)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.value, unmarshaled, "unmarshaled mismatch for %v", tc.value)
+	}
+}
+
+func TestInt64(t *testing.T) {
+	db := getTestDB()
+
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(value VARCHAR(255) NULL);`)
+
+	tcs := []struct {
+		value     null.Int64
+		dbValue   driver.Value
+		marshaled []byte
+	}{
+		{null.Int64(123), int64(123), []byte(`123`)},
+		{null.NullInt64, nil, []byte(`null`)},
+	}
+
+	for _, tc := range tcs {
+		mustExec(db, `DELETE FROM test`)
+
+		dbValue, err := tc.value.Value()
+		assert.NoError(t, err)
+		assert.Equal(t, tc.dbValue, dbValue, "db value mismatch for %v", tc.value)
+
+		// check writing the value to the database
+		_, err = db.Exec(`INSERT INTO test(value) VALUES($1)`, tc.value)
+		assert.NoError(t, err, "unexpected error writing %v", tc.value)
+
+		rows, err := db.Query(`SELECT value FROM test;`)
+		assert.NoError(t, err)
+
+		var scanned null.Int64
+		assert.True(t, rows.Next())
+		err = rows.Scan(&scanned)
+		assert.NoError(t, err)
+
+		assert.Equal(t, tc.value, scanned, "scanned value mismatch for %v", tc.value)
+
+		marshaled, err := json.Marshal(tc.value)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.marshaled, marshaled, "marshaled mismatch for %v", tc.value)
+
+		var unmarshaled null.Int64
+		err = json.Unmarshal(marshaled, &unmarshaled)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.value, unmarshaled, "unmarshaled mismatch for %v", tc.value)
+	}
+}
+
 type CustomID int64
 
 const NullCustomID = CustomID(0)
@@ -40,7 +132,7 @@ func TestCustomInt64(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		mustExec(db, `DELETE FROM test;`)
+		mustExec(db, `DELETE FROM test`)
 
 		b, err := json.Marshal(tc.Value)
 		assert.NoError(t, err)
@@ -77,63 +169,6 @@ func TestCustomInt64(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, tc.Value == id)
 		assert.True(t, tc.Test == id)
-	}
-}
-
-func TestInt64(t *testing.T) {
-	db := getTestDB()
-
-	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(id BIGINT NULL);`)
-
-	ten := int64(10)
-
-	tcs := []struct {
-		Value null.Int64
-		JSON  string
-		DB    *int64
-	}{
-		{null.Int64(10), "10", &ten},
-		{null.Int64(0), "null", nil},
-		{10, "10", &ten},
-		// {OtherCustom(10), "10", &ten}  // error, not the same type
-	}
-
-	for i, tc := range tcs {
-		mustExec(db, `DELETE FROM test;`)
-
-		b, err := json.Marshal(tc.Value)
-		assert.NoError(t, err)
-		assert.True(t, tc.JSON == string(b), "%d: %s not equal to %s", i, tc.JSON, string(b))
-
-		id := null.Int64(10)
-		err = json.Unmarshal(b, &id)
-		assert.NoError(t, err)
-		assert.True(t, tc.Value == id)
-
-		_, err = db.Exec(`INSERT INTO test(id) VALUES($1)`, tc.Value)
-		assert.NoError(t, err)
-
-		rows, err := db.Query(`SELECT id FROM test;`)
-		assert.NoError(t, err)
-
-		var intID *int64
-		assert.True(t, rows.Next())
-		err = rows.Scan(&intID)
-		assert.NoError(t, err)
-
-		if tc.DB == nil {
-			assert.Nil(t, intID)
-		} else {
-			assert.True(t, *tc.DB == *intID)
-		}
-
-		rows, err = db.Query(`SELECT id FROM test;`)
-		assert.NoError(t, err)
-
-		assert.True(t, rows.Next())
-		err = rows.Scan(&id)
-		assert.NoError(t, err)
-		assert.True(t, tc.Value == id)
 	}
 }
 

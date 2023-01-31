@@ -9,6 +9,52 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestString(t *testing.T) {
+	db := getTestDB()
+
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(value VARCHAR(255) NULL);`)
+
+	tcs := []struct {
+		value     null.String
+		dbValue   driver.Value
+		marshaled []byte
+	}{
+		{null.String("foo"), "foo", []byte(`"foo"`)},
+		{null.NullString, nil, []byte(`null`)},
+	}
+
+	for _, tc := range tcs {
+		mustExec(db, `DELETE FROM test`)
+
+		dbValue, err := tc.value.Value()
+		assert.NoError(t, err)
+		assert.Equal(t, tc.dbValue, dbValue, "db value mismatch for %v", tc.value)
+
+		// check writing the value to the database
+		_, err = db.Exec(`INSERT INTO test(value) VALUES($1)`, tc.value)
+		assert.NoError(t, err, "unexpected error writing %v", tc.value)
+
+		rows, err := db.Query(`SELECT value FROM test;`)
+		assert.NoError(t, err)
+
+		var scanned null.String
+		assert.True(t, rows.Next())
+		err = rows.Scan(&scanned)
+		assert.NoError(t, err)
+
+		assert.Equal(t, tc.value, scanned, "scanned value mismatch for %v", tc.value)
+
+		marshaled, err := json.Marshal(tc.value)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.marshaled, marshaled, "marshaled mismatch for %v", tc.value)
+
+		var unmarshaled null.String
+		err = json.Unmarshal(marshaled, &unmarshaled)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.value, unmarshaled, "unmarshaled mismatch for %v", tc.value)
+	}
+}
+
 type CustomString string
 
 const NullCustomString = CustomString("")
@@ -21,114 +67,45 @@ func (s *CustomString) UnmarshalJSON(b []byte) error { return null.UnmarshalStri
 func TestCustomString(t *testing.T) {
 	db := getTestDB()
 
-	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(string varchar(255) null);`)
-
-	foo := "foo"
+	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(value VARCHAR(255) NULL);`)
 
 	tcs := []struct {
-		Value CustomString
-		JSON  string
-		DB    *string
-		Test  CustomString
+		value     CustomString
+		dbValue   driver.Value
+		marshaled []byte
 	}{
-		{CustomString(foo), `"foo"`, &foo, CustomString("foo")},
-		{CustomString(""), "null", nil, NullCustomString},
-		{NullCustomString, "null", nil, CustomString("")},
+		{CustomString("foo"), "foo", []byte(`"foo"`)},
+		{CustomString(""), nil, []byte(`null`)},
 	}
 
 	for _, tc := range tcs {
-		mustExec(db, `DELETE FROM test;`)
+		mustExec(db, `DELETE FROM test`)
 
-		b, err := json.Marshal(tc.Value)
+		dbValue, err := tc.value.Value()
 		assert.NoError(t, err)
-		assert.True(t, tc.JSON == string(b), "%s not equal to %s", tc.JSON, string(b))
+		assert.Equal(t, tc.dbValue, dbValue, "db value mismatch for %v", tc.value)
 
-		str := CustomString("blah")
-		err = json.Unmarshal(b, &str)
-		assert.NoError(t, err)
-		assert.True(t, tc.Value == str)
-		assert.True(t, tc.Test == str)
+		// check writing the value to the database
+		_, err = db.Exec(`INSERT INTO test(value) VALUES($1)`, tc.value)
+		assert.NoError(t, err, "unexpected error writing %v", tc.value)
 
-		_, err = db.Exec(`INSERT INTO test(string) VALUES($1)`, tc.Value)
+		rows, err := db.Query(`SELECT value FROM test;`)
 		assert.NoError(t, err)
 
-		rows, err := db.Query(`SELECT string FROM test;`)
-		assert.NoError(t, err)
-
-		var nullStr *string
+		var scanned CustomString
 		assert.True(t, rows.Next())
-		err = rows.Scan(&nullStr)
+		err = rows.Scan(&scanned)
 		assert.NoError(t, err)
 
-		if tc.DB == nil {
-			assert.Nil(t, nullStr)
-		} else {
-			assert.True(t, *tc.DB == *nullStr)
-		}
+		assert.Equal(t, tc.value, scanned, "scanned value mismatch for %v", tc.value)
 
-		rows, err = db.Query(`SELECT string FROM test;`)
+		marshaled, err := json.Marshal(tc.value)
 		assert.NoError(t, err)
+		assert.Equal(t, tc.marshaled, marshaled, "marshaled mismatch for %v", tc.value)
 
-		assert.True(t, rows.Next())
-		err = rows.Scan(&str)
+		var unmarshaled CustomString
+		err = json.Unmarshal(marshaled, &unmarshaled)
 		assert.NoError(t, err)
-		assert.True(t, tc.Value == str)
-		assert.True(t, tc.Test == str)
-	}
-}
-
-func TestString(t *testing.T) {
-	db := getTestDB()
-
-	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(string VARCHAR(255) NULL);`)
-
-	foo := "foo"
-
-	tcs := []struct {
-		Value null.String
-		JSON  string
-		DB    *string
-	}{
-		{null.String("foo"), `"foo"`, &foo},
-		{null.String(""), "null", nil},
-		{null.NullString, "null", nil},
-	}
-
-	for i, tc := range tcs {
-		mustExec(db, `DELETE FROM test;`)
-
-		b, err := json.Marshal(tc.Value)
-		assert.NoError(t, err)
-		assert.True(t, tc.JSON == string(b), "%d: %s not equal to %s", i, tc.JSON, string(b))
-
-		str := null.String("blah")
-		err = json.Unmarshal(b, &str)
-		assert.NoError(t, err)
-		assert.True(t, tc.Value == str, "%d: %s not equal to %s", i, tc.Value, str)
-
-		_, err = db.Exec(`INSERT INTO test(string) VALUES($1)`, tc.Value)
-		assert.NoError(t, err)
-
-		rows, err := db.Query(`SELECT string FROM test;`)
-		assert.NoError(t, err)
-
-		var nullStr *string
-		assert.True(t, rows.Next())
-		err = rows.Scan(&nullStr)
-		assert.NoError(t, err)
-
-		if tc.DB == nil {
-			assert.Nil(t, nullStr)
-		} else {
-			assert.True(t, *tc.DB == *nullStr)
-		}
-
-		rows, err = db.Query(`SELECT string FROM test;`)
-		assert.NoError(t, err)
-
-		assert.True(t, rows.Next())
-		err = rows.Scan(&str)
-		assert.NoError(t, err)
-		assert.True(t, tc.Value == str)
+		assert.Equal(t, tc.value, unmarshaled, "unmarshaled mismatch for %v", tc.value)
 	}
 }

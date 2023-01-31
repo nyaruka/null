@@ -25,8 +25,7 @@ func TestMap(t *testing.T) {
 		}
 
 		for _, tc := range tcs {
-			_, err := db.Exec(`DELETE FROM test;`)
-			assert.NoError(t, err)
+			mustExec(db, `DELETE FROM test`)
 
 			dbValue, err := tc.value.Value()
 			assert.NoError(t, err)
