@@ -5,22 +5,24 @@ the [Null types](https://golang.org/pkg/database/sql/#NullInt64) in the standard
 differentiate between zero values an null values. If that isn't a meaningful distinction in your app, then this module
 might be a simpler approach for you because it uses primitive values and treats zero values as null values.
 
-If you don't need to define your own types, you can use one of the following predefined types:
+If you don't need to define your own types, you can use one of the following predefined types. If you scan a SQL `NULL` 
+or unmarshal a JSON `null`, you will get the zero value. If you write the zero value to SQL you will get `NULL` and if
+you marshal the zero value to JSON, you will get `null`.
 
-```go
-null.Int    // 0 saves as NULL, NULL scans as zero
-null.Int64  // 0 saves as NULL, NULL scans as zero
-null.String // "" saves as NULL, NULL scans as ""
-null.Map    // empty map or nil saves as NULL, NULL scans as empty map
-null.JSON   // empty or 'null' saves as NULL, NULL scans as 'null'
-```
+|               | Zero Value
+|---------------|-----------------
+| `null.Int`    | `int(0)`        
+| `null.Int64`  | `int64(0)`      
+| `null.String` | `""`            
+| `null.Map`    | `map[string]any{}`         
+| `null.JSON`   | `[]byte("null")`  
 
 If you want to define a custom integer type, you need to define the following methods:
 
 ```go
 import "github.com/nyaruka/null/v2"
 
-type CustomID int64
+type CustomID int64  // or int etc
 
 const NullCustomID = CustomID(0)
 
