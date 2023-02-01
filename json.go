@@ -12,6 +12,11 @@ type JSON json.RawMessage
 
 var NullJSON = JSON(`null`)
 
+// IsNull returns whether this JSON value is empty or contains null.
+func (j JSON) IsNull() bool {
+	return len(j) == 0 || bytes.Equal(j, NullJSON)
+}
+
 // Scan implements the Scanner interface
 func (j *JSON) Scan(value any) error { return ScanJSON(value, j) }
 
@@ -55,7 +60,7 @@ func ScanJSON(value any, j *JSON) error {
 }
 
 func JSONValue(j JSON) (driver.Value, error) {
-	if len(j) == 0 || bytes.Equal(j, NullJSON) {
+	if j.IsNull() {
 		return nil, nil
 	}
 	return []byte(j), nil

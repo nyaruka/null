@@ -16,19 +16,22 @@ func TestJSON(t *testing.T) {
 	testMap := func() {
 		tcs := []struct {
 			value     null.JSON
+			isNull    bool
 			dbValue   driver.Value
 			marshaled []byte
 		}{
-			{null.JSON(`{"foo": "bar"}`), []byte(`{"foo": "bar"}`), []byte(`{"foo": "bar"}`)},
-			{null.JSON(`[1, 2, 3]`), []byte(`[1, 2, 3]`), []byte(`[1, 2, 3]`)},
-			{null.JSON(`{}`), []byte(`{}`), []byte(`{}`)},
-			{null.JSON(`null`), nil, []byte(`null`)},
-			{null.JSON(``), nil, []byte(`null`)},
-			{null.JSON(nil), nil, []byte(`null`)},
+			{null.JSON(`{"foo": "bar"}`), false, []byte(`{"foo": "bar"}`), []byte(`{"foo": "bar"}`)},
+			{null.JSON(`[1, 2, 3]`), false, []byte(`[1, 2, 3]`), []byte(`[1, 2, 3]`)},
+			{null.JSON(`{}`), false, []byte(`{}`), []byte(`{}`)},
+			{null.JSON(`null`), true, nil, []byte(`null`)},
+			{null.JSON(``), true, nil, []byte(`null`)},
+			{null.JSON(nil), true, nil, []byte(`null`)},
 		}
 
 		for _, tc := range tcs {
 			mustExec(db, `DELETE FROM test`)
+
+			assert.Equal(t, tc.isNull, tc.value.IsNull(), "isNull mismatch for %v", tc.value)
 
 			dbValue, err := tc.value.Value()
 			assert.NoError(t, err)
