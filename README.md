@@ -39,10 +39,13 @@ import "github.com/nyaruka/null/v2"
 
 type CustomString string
 
-type NullCustomString = CustomString("")
+const NullCustomString = CustomString("")
 
 func (s *CustomString) Scan(value any) error         { return null.ScanString(value, s) }
 func (s CustomString) Value() (driver.Value, error)  { return null.StringValue(s) }
 func (s CustomString) MarshalJSON() ([]byte, error)  { return null.MarshalString(s) }
 func (s *CustomString) UnmarshalJSON(b []byte) error { return null.UnmarshalString(b, s) }
 ```
+
+If you want to create a type which can scan from `NULL`, but always writes as the zero value, just don't define the `Value` 
+method. This can be useful when changing a database column to be non-NULL.
