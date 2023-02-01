@@ -10,7 +10,7 @@ import (
 // JSON is a json.RawMessage that will marshall as null when empty or nil.
 type JSON json.RawMessage
 
-var nullJSON = JSON(`null`)
+var NullJSON = JSON(`null`)
 
 // Scan implements the Scanner interface
 func (j *JSON) Scan(value any) error { return ScanJSON(value, j) }
@@ -26,7 +26,7 @@ func (j JSON) MarshalJSON() ([]byte, error) { return MarshalJSON(j) }
 
 func ScanJSON(value any, j *JSON) error {
 	if value == nil {
-		*j = nullJSON
+		*j = NullJSON
 		return nil
 	}
 
@@ -42,7 +42,7 @@ func ScanJSON(value any, j *JSON) error {
 
 	// empty bytes is same as nil
 	if len(raw) == 0 {
-		*j = nullJSON
+		*j = NullJSON
 		return nil
 	}
 
@@ -55,7 +55,7 @@ func ScanJSON(value any, j *JSON) error {
 }
 
 func JSONValue(j JSON) (driver.Value, error) {
-	if len(j) == 0 || bytes.Equal(j, nullJSON) {
+	if len(j) == 0 || bytes.Equal(j, NullJSON) {
 		return nil, nil
 	}
 	return []byte(j), nil
