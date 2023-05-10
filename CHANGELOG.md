@@ -1,3 +1,7 @@
+v2.0.3 (2023-05-10)
+-------------------------
+ * Clone the bytes driver gives us when scanning JSON
+
 v2.0.2 (2023-02-01)
 -------------------------
  * Add JSON.IsNull method
