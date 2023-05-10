@@ -3,23 +3,25 @@ on: [push, pull_request]
 jobs:
   test:
     name: Test
-    env:
-      pg-version: "14"
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.18.x, 1.19.x]
-    runs-on: ubuntu-latest
+        go-version: [1.19.x, 1.20.x]
+
+    services:
+      postgres:
+        image: postgis/postgis:14-3.3-alpine
+        env:
+          POSTGRES_DB: null_test
+          POSTGRES_USER: null_test
+          POSTGRES_PASSWORD: temba
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Install PostgreSQL
-        uses: harmon758/postgresql-action@v1
-        with:
-          postgresql version: ${{ env.pg-version }}
-          postgresql db: null_test
-          postgresql user: nyaruka
-          postgresql password: nyaruka
 
       - name: Install Go
         uses: actions/setup-go@v3
