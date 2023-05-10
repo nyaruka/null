@@ -55,7 +55,12 @@ func ScanJSON(value any, j *JSON) error {
 		return fmt.Errorf("scanned JSON isn't valid")
 	}
 
-	*j = raw
+	// we need to make our own copy of this data as the driver is allowed to reuse it for subsequent scans - usually
+	// database/sql takes care of this but we're implementing our own Scanner https://github.com/golang/go/issues/24492
+	cloned := make([]byte, len(raw))
+	copy(cloned, raw)
+
+	*j = cloned
 	return nil
 }
 
