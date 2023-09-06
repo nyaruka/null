@@ -1,3 +1,7 @@
+v3.0.0 (2023-09-06)
+-------------------------
+ * Convert null.Map to be generic
+
 v2.0.3 (2023-05-10)
 -------------------------
  * Clone the bytes driver gives us when scanning JSON
