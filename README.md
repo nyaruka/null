@@ -14,7 +14,7 @@ you marshal the zero value to JSON, you will get `null`.
 | `null.Int`    | `int(0)`        
 | `null.Int64`  | `int64(0)`      
 | `null.String` | `""`            
-| `null.Map`    | `map[string]any{}`         
+| `null.Map[V]`    | `map[string]V{}`         
 | `null.JSON`   | `[]byte("null")`  
 
 If you want to define a custom integer type, you need to define the following methods:
