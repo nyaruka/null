@@ -14,3 +14,11 @@
 
 deploy
 fabfile.py
+
+.devcontainer
+
+# AI
+.claude/
+CLAUDE.md
+CODEX.md
+AGENTS.md
