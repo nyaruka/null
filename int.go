@@ -4,9 +4,12 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
-
-	"golang.org/x/exp/constraints"
 )
+
+// Signed is a constraint that permits any signed integer type.
+type Signed interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64
+}
 
 // Int is an int that will write as null when it is zero both to databases and JSON
 // null values when unmarshalled or scanned from a DB will result in a zero value.
@@ -47,7 +50,7 @@ func (i *Int64) UnmarshalJSON(b []byte) error { return UnmarshalInt(b, i) }
 func (i Int64) MarshalJSON() ([]byte, error) { return MarshalInt(i) }
 
 // ScanInt scans a nullable INT into an int type, using zero for NULL.
-func ScanInt[T constraints.Signed](value any, i *T) error {
+func ScanInt[T Signed](value any, i *T) error {
 	ni := sql.NullInt64{}
 
 	if err := ni.Scan(value); err != nil {
@@ -64,7 +67,7 @@ func ScanInt[T constraints.Signed](value any, i *T) error {
 }
 
 // IntValue converts an int type value to NULL if it is zero.
-func IntValue[T constraints.Signed](i T) (driver.Value, error) {
+func IntValue[T Signed](i T) (driver.Value, error) {
 	if i == 0 {
 		return nil, nil
 	}
@@ -72,7 +75,7 @@ func IntValue[T constraints.Signed](i T) (driver.Value, error) {
 }
 
 // UnmarshalInt unmarshals an int type from JSON, using zero for null.
-func UnmarshalInt[T constraints.Signed](b []byte, i *T) error {
+func UnmarshalInt[T Signed](b []byte, i *T) error {
 	var val *int64
 
 	if err := json.Unmarshal(b, &val); err != nil {
@@ -89,7 +92,7 @@ func UnmarshalInt[T constraints.Signed](b []byte, i *T) error {
 }
 
 // MarshalJSON marshals an int type to JSON, using null for zero.
-func MarshalInt[T constraints.Signed](i T) ([]byte, error) {
+func MarshalInt[T Signed](i T) ([]byte, error) {
 	if i == 0 {
 		return json.Marshal(nil)
 	}
