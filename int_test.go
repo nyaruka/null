@@ -172,6 +172,49 @@ func TestCustomInt64(t *testing.T) {
 	}
 }
 
+type NarrowID int32
+
+func (i *NarrowID) Scan(value any) error         { return null.ScanInt(value, i) }
+func (i NarrowID) Value() (driver.Value, error)  { return null.IntValue(i) }
+func (i *NarrowID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i) }
+func (i NarrowID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
+
+func TestIntOutOfRange(t *testing.T) {
+	var id NarrowID
+
+	// values which don't fit the target type must error rather than silently wrapping
+	err := json.Unmarshal([]byte(`4294967297`), &id)
+	assert.EqualError(t, err, "4294967297 is out of range for null_test.NarrowID")
+	assert.Equal(t, NarrowID(0), id)
+
+	// including ones which would wrap to the zero value we treat as null
+	err = id.Scan(int64(4294967296))
+	assert.EqualError(t, err, "4294967296 is out of range for null_test.NarrowID")
+	assert.Equal(t, NarrowID(0), id)
+
+	// values at the limits of the target type are fine
+	assert.NoError(t, json.Unmarshal([]byte(`2147483647`), &id))
+	assert.Equal(t, NarrowID(2147483647), id)
+
+	assert.NoError(t, id.Scan(int64(-2147483648)))
+	assert.Equal(t, NarrowID(-2147483648), id)
+
+	// as is the full int64 range for an int64 type
+	var big null.Int64
+	assert.NoError(t, json.Unmarshal([]byte(`9223372036854775807`), &big))
+	assert.Equal(t, null.Int64(9223372036854775807), big)
+
+	assert.NoError(t, big.Scan(int64(-9223372036854775808)))
+	assert.Equal(t, null.Int64(-9223372036854775808), big)
+
+	// null still scans and unmarshals as zero
+	assert.NoError(t, id.Scan(nil))
+	assert.Equal(t, NarrowID(0), id)
+
+	assert.NoError(t, json.Unmarshal([]byte(`null`), &id))
+	assert.Equal(t, NarrowID(0), id)
+}
+
 func getTestDB() *sql.DB {
 	db, err := sql.Open("postgres", "postgres://null_test:temba@localhost/null_test?sslmode=disable&Timezone=UTC")
 	if err != nil {
