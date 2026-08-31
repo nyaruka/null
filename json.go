@@ -86,10 +86,11 @@ func UnmarshalJSON(data []byte, j *JSON) error {
 	return nil
 }
 
+// MarshalJSON returns the raw bytes of the value, or null if it's empty. Like json.RawMessage.MarshalJSON it
+// returns the value's own backing array rather than a copy, so callers must not mutate the result.
 func MarshalJSON(j JSON) ([]byte, error) {
 	if len(j) == 0 {
 		return json.Marshal(nil)
 	}
-	// return a copy so that callers can't mutate the value via the returned slice
-	return bytes.Clone(j), nil
+	return []byte(j), nil
 }

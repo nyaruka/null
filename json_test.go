@@ -121,16 +121,20 @@ func TestJSONIsNullDoesntDependOnNullJSON(t *testing.T) {
 	assert.False(t, null.JSON(`{"not":"null"}`).IsNull())
 }
 
-func TestJSONMarshalDoesntAliasValue(t *testing.T) {
+func TestJSONMarshalReturnsRawBytes(t *testing.T) {
+	// like json.RawMessage, MarshalJSON hands back the value's own bytes rather than a copy
 	v := null.JSON(`{"foo":"bar"}`)
 
 	marshaled, err := v.MarshalJSON()
 	assert.NoError(t, err)
 	assert.Equal(t, []byte(`{"foo":"bar"}`), marshaled)
 
-	marshaled[2] = 'X'
-
-	assert.Equal(t, null.JSON(`{"foo":"bar"}`), v)
+	// empty and nil values marshal as null
+	for _, empty := range []null.JSON{null.JSON(``), nil} {
+		marshaled, err = empty.MarshalJSON()
+		assert.NoError(t, err)
+		assert.Equal(t, []byte(`null`), marshaled)
+	}
 }
 
 func TestJSONScanDoesntAliasDriverBuffer(t *testing.T) {

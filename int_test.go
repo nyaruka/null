@@ -180,17 +180,19 @@ func (i *NarrowID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i
 func (i NarrowID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
 
 func TestIntOutOfRange(t *testing.T) {
-	var id NarrowID
+	// seed with a distinctive value so that leaving the destination alone is distinguishable from writing a
+	// wrapped one - 4294967296 wraps to exactly 0 for an int32, which a zero-valued destination would hide
+	id := NarrowID(7)
 
 	// values which don't fit the target type must error rather than silently wrapping
 	err := json.Unmarshal([]byte(`4294967297`), &id)
 	assert.EqualError(t, err, "4294967297 is out of range for null_test.NarrowID")
-	assert.Equal(t, NarrowID(0), id)
+	assert.Equal(t, NarrowID(7), id, "destination should be left unchanged on error")
 
 	// including ones which would wrap to the zero value we treat as null
 	err = id.Scan(int64(4294967296))
 	assert.EqualError(t, err, "4294967296 is out of range for null_test.NarrowID")
-	assert.Equal(t, NarrowID(0), id)
+	assert.Equal(t, NarrowID(7), id, "destination should be left unchanged on error")
 
 	// values at the limits of the target type are fine
 	assert.NoError(t, json.Unmarshal([]byte(`2147483647`), &id))
