@@ -218,7 +218,7 @@ func TestIntOutOfRange(t *testing.T) {
 }
 
 func getTestDB() *sql.DB {
-	db, err := sql.Open("postgres", "postgres://null_test:temba@localhost/null_test?sslmode=disable&Timezone=UTC")
+	db, err := sql.Open("postgres", "postgres://null_test:temba@postgres/null_test?sslmode=disable&Timezone=UTC")
 	if err != nil {
 		panic(err)
 	}
