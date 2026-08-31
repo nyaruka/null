@@ -10,11 +10,16 @@ import (
 // JSON is a json.RawMessage that will marshall as null when empty or nil.
 type JSON json.RawMessage
 
-var NullJSON = JSON(`null`)
+// the null literal, kept as an untyped constant so that it can't be aliased or mutated
+const nullJSON = "null"
+
+// NullJSON is our constant for a JSON value that will be written as null. It must not be mutated or reassigned -
+// use JSON(nil) or JSON(`null`) to construct a null value.
+var NullJSON = JSON(nullJSON)
 
 // IsNull returns whether this JSON value is empty or contains null.
 func (j JSON) IsNull() bool {
-	return len(j) == 0 || bytes.Equal(j, NullJSON)
+	return len(j) == 0 || string(j) == nullJSON
 }
 
 // Scan implements the Scanner interface
@@ -31,7 +36,7 @@ func (j JSON) MarshalJSON() ([]byte, error) { return MarshalJSON(j) }
 
 func ScanJSON(value any, j *JSON) error {
 	if value == nil {
-		*j = NullJSON
+		*j = JSON(nullJSON)
 		return nil
 	}
 
@@ -47,7 +52,7 @@ func ScanJSON(value any, j *JSON) error {
 
 	// empty bytes is same as nil
 	if len(raw) == 0 {
-		*j = NullJSON
+		*j = JSON(nullJSON)
 		return nil
 	}
 
@@ -57,10 +62,7 @@ func ScanJSON(value any, j *JSON) error {
 
 	// we need to make our own copy of this data as the driver is allowed to reuse it for subsequent scans - usually
 	// database/sql takes care of this but we're implementing our own Scanner https://github.com/golang/go/issues/24492
-	cloned := make([]byte, len(raw))
-	copy(cloned, raw)
-
-	*j = cloned
+	*j = JSON(bytes.Clone(raw))
 	return nil
 }
 
@@ -72,12 +74,22 @@ func JSONValue(j JSON) (driver.Value, error) {
 }
 
 func UnmarshalJSON(data []byte, j *JSON) error {
-	return json.Unmarshal(data, (*json.RawMessage)(j))
+	// unmarshal into a new value rather than *j, because json.RawMessage appends into whatever backing array it
+	// already has, which would write through to any value sharing it
+	var raw json.RawMessage
+
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	*j = JSON(raw)
+	return nil
 }
 
 func MarshalJSON(j JSON) ([]byte, error) {
 	if len(j) == 0 {
 		return json.Marshal(nil)
 	}
-	return []byte(j), nil
+	// return a copy so that callers can't mutate the value via the returned slice
+	return bytes.Clone(j), nil
 }

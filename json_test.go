@@ -76,3 +76,71 @@ func TestJSON(t *testing.T) {
 	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(value jsonb null);`)
 	testMap()
 }
+
+func TestJSONNullIsNotShared(t *testing.T) {
+	// scanning a NULL must not hand out a value which aliases package state or any other value
+	var v1, v2 null.JSON
+	assert.NoError(t, v1.Scan(nil))
+	assert.NoError(t, v2.Scan(nil))
+
+	// unmarshaling a short value into one must not write through to the other or to null.NullJSON
+	assert.NoError(t, json.Unmarshal([]byte(`12`), &v1))
+
+	assert.Equal(t, null.JSON(`12`), v1)
+	assert.Equal(t, null.JSON(`null`), v2)
+	assert.True(t, v2.IsNull())
+	assert.Equal(t, null.JSON(`null`), null.NullJSON)
+
+	// and a NULL scanned afterwards is still null
+	var v3 null.JSON
+	assert.NoError(t, v3.Scan(nil))
+	assert.Equal(t, null.JSON(`null`), v3)
+	assert.True(t, v3.IsNull())
+
+	// a null value still writes as SQL NULL rather than the literal bytes
+	dbValue, err := null.JSON(`null`).Value()
+	assert.NoError(t, err)
+	assert.Nil(t, dbValue)
+
+	// same for a value scanned from empty bytes
+	var v4 null.JSON
+	assert.NoError(t, v4.Scan([]byte{}))
+	assert.NoError(t, json.Unmarshal([]byte(`[]`), &v4))
+	assert.Equal(t, null.JSON(`null`), null.NullJSON)
+}
+
+func TestJSONIsNullDoesntDependOnNullJSON(t *testing.T) {
+	orig := null.NullJSON
+	defer func() { null.NullJSON = orig }()
+
+	null.NullJSON = null.JSON(`{"not":"null"}`)
+
+	assert.True(t, null.JSON(`null`).IsNull())
+	assert.True(t, null.JSON(``).IsNull())
+	assert.True(t, null.JSON(nil).IsNull())
+	assert.False(t, null.JSON(`{"not":"null"}`).IsNull())
+}
+
+func TestJSONMarshalDoesntAliasValue(t *testing.T) {
+	v := null.JSON(`{"foo":"bar"}`)
+
+	marshaled, err := v.MarshalJSON()
+	assert.NoError(t, err)
+	assert.Equal(t, []byte(`{"foo":"bar"}`), marshaled)
+
+	marshaled[2] = 'X'
+
+	assert.Equal(t, null.JSON(`{"foo":"bar"}`), v)
+}
+
+func TestJSONScanDoesntAliasDriverBuffer(t *testing.T) {
+	// the driver is allowed to reuse the buffer it gives us for subsequent scans
+	buf := []byte(`{"foo":"bar"}`)
+
+	var v null.JSON
+	assert.NoError(t, v.Scan(buf))
+
+	copy(buf, []byte(`{"zzz":"zzz"}`))
+
+	assert.Equal(t, null.JSON(`{"foo":"bar"}`), v)
+}
