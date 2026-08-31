@@ -44,11 +44,7 @@ func ScanMap[V any](value any, m *Map[V]) error {
 		return nil
 	}
 
-	if err := json.Unmarshal(raw, m); err != nil {
-		return err
-	}
-
-	return nil
+	return UnmarshalMap(raw, m)
 }
 
 // MapValue converts a map to NULL if it is empty.
@@ -68,13 +64,18 @@ func MarshalMap[V any](m Map[V]) ([]byte, error) {
 }
 
 func UnmarshalMap[V any](data []byte, m *Map[V]) error {
-	err := json.Unmarshal(data, (*map[string]V)(m))
-	if err != nil {
+	// unmarshal into a new map rather than *m, because encoding/json merges into an existing map and would leave
+	// behind keys from whatever was there before
+	var parsed map[string]V
+
+	if err := json.Unmarshal(data, &parsed); err != nil {
 		return err
 	}
 
-	if *m == nil {
-		*m = make(Map[V]) // initialize empty map
+	if parsed == nil {
+		parsed = make(map[string]V) // JSON null gives us a nil map
 	}
+
+	*m = parsed
 	return nil
 }

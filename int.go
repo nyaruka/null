@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 )
 
 // Signed is a constraint that permits any signed integer type.
@@ -62,8 +63,7 @@ func ScanInt[T Signed](value any, i *T) error {
 		return nil
 	}
 
-	*i = T(ni.Int64)
-	return nil
+	return convertInt(ni.Int64, i)
 }
 
 // IntValue converts an int type value to NULL if it is zero.
@@ -87,8 +87,7 @@ func UnmarshalInt[T Signed](b []byte, i *T) error {
 		return nil
 	}
 
-	*i = T(*val)
-	return nil
+	return convertInt(*val, i)
 }
 
 // MarshalJSON marshals an int type to JSON, using null for zero.
@@ -97,4 +96,15 @@ func MarshalInt[T Signed](i T) ([]byte, error) {
 		return json.Marshal(nil)
 	}
 	return json.Marshal(int64(i))
+}
+
+// convertInt converts an int64 to a narrower int type, erroring rather than silently wrapping if it doesn't fit.
+func convertInt[T Signed](v int64, i *T) error {
+	converted := T(v)
+	if int64(converted) != v {
+		return fmt.Errorf("%d is out of range for %T", v, converted)
+	}
+
+	*i = converted
+	return nil
 }

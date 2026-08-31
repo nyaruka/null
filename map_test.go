@@ -70,3 +70,50 @@ func TestMap(t *testing.T) {
 	mustExec(db, `DROP TABLE IF EXISTS test; CREATE TABLE test(value jsonb null);`)
 	testMap()
 }
+
+func TestMapScanReplacesExistingKeys(t *testing.T) {
+	// a map reused across scans - as when scanning rows in a loop - must not retain keys from the previous scan
+	m := null.Map[string]{}
+
+	assert.NoError(t, m.Scan([]byte(`{"foo":"1"}`)))
+	assert.Equal(t, null.Map[string]{"foo": "1"}, m)
+
+	assert.NoError(t, m.Scan([]byte(`{"bar":"2"}`)))
+	assert.Equal(t, null.Map[string]{"bar": "2"}, m)
+
+	assert.NoError(t, m.Scan(`{"baz":"3"}`))
+	assert.Equal(t, null.Map[string]{"baz": "3"}, m)
+
+	assert.NoError(t, m.Scan([]byte(`{}`)))
+	assert.Equal(t, null.Map[string]{}, m)
+
+	assert.NoError(t, m.Scan([]byte(`{"foo":"4"}`)))
+	assert.NoError(t, m.Scan([]byte(`null`)))
+	assert.Equal(t, null.Map[string]{}, m)
+
+	assert.NoError(t, m.Scan([]byte(`{"foo":"5"}`)))
+	assert.NoError(t, m.Scan(nil))
+	assert.Equal(t, null.Map[string]{}, m)
+
+	assert.NoError(t, m.Scan([]byte(`{"foo":"6"}`)))
+	assert.NoError(t, m.Scan([]byte{}))
+	assert.Equal(t, null.Map[string]{}, m)
+
+	// a failed scan leaves the previous value alone rather than half-merging into it
+	assert.NoError(t, m.Scan([]byte(`{"foo":"7"}`)))
+	assert.Error(t, m.Scan([]byte(`{`)))
+	assert.Equal(t, null.Map[string]{"foo": "7"}, m)
+}
+
+func TestMapUnmarshalReplacesExistingKeys(t *testing.T) {
+	m := null.Map[string]{}
+
+	assert.NoError(t, json.Unmarshal([]byte(`{"foo":"1"}`), &m))
+	assert.Equal(t, null.Map[string]{"foo": "1"}, m)
+
+	assert.NoError(t, json.Unmarshal([]byte(`{"bar":"2"}`), &m))
+	assert.Equal(t, null.Map[string]{"bar": "2"}, m)
+
+	assert.NoError(t, json.Unmarshal([]byte(`null`), &m))
+	assert.Equal(t, null.Map[string]{}, m)
+}
