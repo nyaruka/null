@@ -1,3 +1,10 @@
+v3.1.0 (2026-08-31)
+-------------------------
+ * Don't share backing arrays between JSON values scanned from NULL
+ * Replace map contents when scanning instead of merging into them
+ * Error rather than silently wrap when an integer doesn't fit the target type
+ * Require Go 1.25 and drop golang.org/x/exp dependency
+
 v3.0.0 (2023-09-06)
 -------------------------
  * Convert null.Map to be generic
